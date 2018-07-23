@@ -5,26 +5,33 @@ const KNOWN_DEVICES: [(u16, u16, &str); 2] = [
     (0x0bda, 0x2838, "Generic RTL2832U OEM")
 ];
 
+struct Usb {
+    ctx: libusb::Context,
+    desc: Option<libusb::DeviceDescriptor>
+    // dev: Option<libusb::Device>
+}
+
 pub struct RtlSdr {
-    usb_ctx: libusb::Context,
-    usb_dd: Option<libusb::DeviceDescriptor>
+    usb: Usb
 }
 
 impl RtlSdr {
     
     pub fn new() -> RtlSdr {
         RtlSdr {
-            usb_ctx: libusb::Context::new().unwrap(),
-            usb_dd: None
+            usb: Usb {
+                ctx: libusb::Context::new().unwrap(),
+                desc: None
+            }
         }
     }
 
     pub fn init(&mut self) {
-        self.usb_dd = self.find_device();
+        self.usb.desc = self.find_device();
     }
 
     pub fn find_device(&self) -> Option<libusb::DeviceDescriptor> {
-        for mut dev in self.usb_ctx.devices().unwrap().iter() {
+        for mut dev in self.usb.ctx.devices().unwrap().iter() {
             let desc = dev.device_descriptor().unwrap();
             let vid = desc.vendor_id();
             let pid = desc.product_id();
@@ -46,8 +53,8 @@ mod tests {
     #[test]
     fn test_init() {
         let mut rtlsdr = RtlSdr::new();
-        assert!(rtlsdr.usb_dd.is_none());
+        assert!(rtlsdr.usb.desc.is_none());
         rtlsdr.init();
-        assert!(rtlsdr.usb_dd.is_some());
+        assert!(rtlsdr.usb.desc.is_some());
     }
 }
