@@ -13,11 +13,9 @@ pub struct RtlSdr {
 impl RtlSdr {
     
     pub fn new() -> RtlSdr {
-        let usb_ctx = libusb::Context::new().unwrap();
-        let usb_dd = None;
         RtlSdr {
-            usb_ctx,
-            usb_dd
+            usb_ctx: libusb::Context::new().unwrap(),
+            usb_dd: None
         }
     }
 
