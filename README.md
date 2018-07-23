@@ -1,8 +1,30 @@
-# RusTL
+# RusTL-SDR
 
-A pure Rust implementation of the [RTL-SDR](https://github.com/osmocom/rtl-sdr/) driver.
+A pure Rust implementation of the [RTL-SDR](https://github.com/osmocom/rtl-sdr/) driver, for shits and giggles.
 
-This is mostly an exercise in writing low-level driver code and is unlikely to ever become seriously useful.
+This is mostly an exercise in writing low-level driver code.
+
+Unusable, and highly unlikely to ever become usable. But it's fun.
+
+## Usage
+
+Install the crate in your `Cargo.toml`:
+
+```toml
+[dependencies]
+rustl-sdr = "0.1"
+```
+
+Use in your code:
+
+```rust
+extern crate rustl_sdr;
+
+fn foo() {
+    rtlsdr = rustl_sdr::RtlSdr::new();
+    rtlsdr.do_stuff()
+}
+```
 
 ## Dev
 

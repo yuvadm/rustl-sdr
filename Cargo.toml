@@ -1,5 +1,5 @@
 [package]
-name = "rustl"
+name = "rustl-sdr"
 version = "0.1.0"
 authors = ["Yuval Adam <_@yuv.al>"]
 
