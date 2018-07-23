@@ -1,5 +1,5 @@
 [package]
-name = "rustyl"
+name = "rustl"
 version = "0.1.0"
 authors = ["Yuval Adam <_@yuv.al>"]
 
