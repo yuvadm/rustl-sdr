@@ -35,6 +35,8 @@ $ cargo build
 $ cargo test
 ```
 
+Since there isn't (?) any good USB device mocking setup, for tests to pass an RTL-SDR device must be connected.
+
 ## License
 
 [GPLv3](LICENSE)

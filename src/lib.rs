@@ -1,48 +1,55 @@
 extern crate libusb;
 
-pub struct Dongle {
-    vendor: u16,
-    product: u16,
-    name: &'static str
-}
+const KNOWN_DEVICES: [(u16, u16, &str); 2] = [
+    (0x0bda, 0x2832, "Generic RTL2832U"),
+    (0x0bda, 0x2838, "Generic RTL2832U OEM")
+];
 
 pub struct RtlSdr {
-    usb_ctx: libusb::Context
+    usb_ctx: libusb::Context,
+    usb_dd: Option<libusb::DeviceDescriptor>
 }
 
 impl RtlSdr {
+    
     pub fn new() -> RtlSdr {
         let usb_ctx = libusb::Context::new().unwrap();
+        let usb_dd = None;
         RtlSdr {
-            usb_ctx
+            usb_ctx,
+            usb_dd
         }
     }
 
-    pub fn find(&self) {
+    pub fn init(&mut self) {
+        self.usb_dd = self.find_device();
+    }
+
+    pub fn find_device(&self) -> Option<libusb::DeviceDescriptor> {
         for mut dev in self.usb_ctx.devices().unwrap().iter() {
             let desc = dev.device_descriptor().unwrap();
-            println!("Bus {:03} Device {:03} ID {:04x}:{:04x}",
-                dev.bus_number(),
-                dev.address(),
-                desc.vendor_id(),
-                desc.product_id());
+            let vid = desc.vendor_id();
+            let pid = desc.product_id();
+
+            for kd in KNOWN_DEVICES.iter() {
+                if kd.0 == vid && kd.1 == pid {
+                    return Some(desc)
+                }
+            }
         }
+        None
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn dongle() {
-        let _dongle = Dongle {
-            vendor: 0x1234,
-            product: 0x5678,
-            name: "Test"
-        };
-        assert!(_dongle.name == "Test");
+    fn test_init() {
+        let mut rtlsdr = RtlSdr::new();
+        assert!(rtlsdr.usb_dd.is_none());
+        rtlsdr.init();
+        assert!(rtlsdr.usb_dd.is_some());
     }
 }

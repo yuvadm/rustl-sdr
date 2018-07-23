@@ -6,6 +6,6 @@ use lib::RtlSdr;
 
 fn main() {
     println!("Running");
-    let rtlsdr = RtlSdr::new();
-    rtlsdr.find();
+    let mut rtlsdr = RtlSdr::new();
+    rtlsdr.init();
 }
