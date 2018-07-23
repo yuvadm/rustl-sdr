@@ -1,10 +1,12 @@
 # RusTL-SDR
 
-A pure Rust implementation of the [RTL-SDR](https://github.com/osmocom/rtl-sdr/) driver, for shits and giggles.
+A pure Rust implementation of the RTL-SDR driver, for shits and giggles.
 
 This is mostly an exercise in writing low-level driver code.
 
 Unusable, and highly unlikely to ever become usable. But it's fun.
+
+For real alternatives check out the original [librtlsdr](https://github.com/osmocom/rtl-sdr/) implementation or the high-level [rtlsdr_mt](https://github.com/kchmck/rtlsdr_mt.rs) Rust bindings.
 
 ## Usage
 
