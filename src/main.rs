@@ -6,6 +6,7 @@ use lib::RtlSdr;
 
 fn main() {
     println!("Running");
-    let mut rtlsdr = RtlSdr::new();
+    let ctx = libusb::Context::new().unwrap();
+    let mut rtlsdr = RtlSdr::new(&ctx);
     rtlsdr.init();
 }
