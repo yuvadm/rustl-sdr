@@ -20,11 +20,14 @@ rustl-sdr = "0.1"
 Use in your code:
 
 ```rust
+extern crate libusb;
 extern crate rustl_sdr;
 
 fn foo() {
-    rtlsdr = rustl_sdr::RtlSdr::new();
-    rtlsdr.do_stuff()
+    let ctx = libusb::Context::new().unwrap();
+    rtlsdr = rustl_sdr::RtlSdr::new(&ctx);
+    rtlsdr.init();
+    rtlsdr.do_stuff();
 }
 ```
 
