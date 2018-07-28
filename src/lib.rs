@@ -29,17 +29,18 @@ impl<'a> RtlSdr<'a> {
         }
     }
 
-    pub fn init(&mut self) {
-        self.find_device();
-    }
-
-    fn write_reg(&self, handle: &libusb::DeviceHandle, block: u16, addr: u16, val: u8, _len: u8) -> usize {
+    fn write_reg(&self, handle: &libusb::DeviceHandle, block: u16, addr: u16, val: u16, len: u8) -> usize {
         let vendor_out = libusb::request_type(Direction::Out, RequestType::Vendor, Recipient::Device);
         let mut data: [u8; 2] = [0, 0];
         let index: u16 = (block << 8) | 0x10;
 
-        data[0] = val;
-        data[1] = val;
+        // switching endianness???
+        data[0] = if len == 1 {
+            (val & 0xff) as u8
+        } else {
+            (val >> 8) as u8
+        };
+        data[1] = (val & 0xff) as u8;
 
         match handle.write_control(vendor_out, 0, addr, index, &data, CTRL_TIMEOUT) {
             Ok(n) => n,
@@ -47,7 +48,7 @@ impl<'a> RtlSdr<'a> {
         }
     }
 
-    pub fn find_device(&mut self) {
+    pub fn init(&mut self) {
         for mut dev in self.ctx.devices().unwrap().iter() {
             let desc = dev.device_descriptor().unwrap();
             let vid = desc.vendor_id();
@@ -68,7 +69,7 @@ impl<'a> RtlSdr<'a> {
                     let _iface = handle.claim_interface(self.iface_id).unwrap();
 
                     let res = self.write_reg(&handle, BLOCK_USBB, ADDR_USB_SYSCTL, 0x09, 1);
-                    println!("Got {}", res);
+                    // reset device is write didn't succeed
 
                     if has_kernel_driver {
                         handle.attach_kernel_driver(self.iface_id).ok();
