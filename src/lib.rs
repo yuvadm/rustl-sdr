@@ -7,6 +7,7 @@ const BLOCK_DEMODB: u16 = 0;
 const BLOCK_USBB: u16 = 1;
 const BLOCK_SYSB: u16 = 2;
 const BLOCK_TUNB: u16 = 3;
+const BLOCK_IICB: u8 = 6;
 
 const ADDR_USB_SYSCTL: u16 = 0x2000;
 const ADDR_USB_CTRL: u16 = 0x2010;
@@ -19,6 +20,10 @@ const ADDR_USB_EPA_FIFO_CFG: u16 = 0x2160;
 
 const ADDR_SYS_DEMOD_CTL: u16 = 0x3000;
 const ADDR_SYS_DEMOD_CTL_1: u16 = 0x300b;
+
+const R820T_I2C_ADDR: u8 = 0x34;
+const R82XX_CHECK_ADDR: u8 = 0x00;
+const R82XX_CHECK_VAL: u8 = 0x69;
 
 const INTERFACE_ID: u8 = 0;
 
@@ -82,7 +87,6 @@ impl<'a> RtlSdr<'a> {
         return reg;
     }
 
-
     fn demod_write_reg(&self, handle: &libusb::DeviceHandle, page: u8, addr: u16, val: u16, len: u8) -> u16 {
         let type_vendor_out = libusb::request_type(Direction::Out, RequestType::Vendor, Recipient::Device);
         let mut data: [u8; 2] = [0, 0];
@@ -98,6 +102,37 @@ impl<'a> RtlSdr<'a> {
 
         let _res = handle.write_control(type_vendor_out, 0, addr, index, &data, CTRL_TIMEOUT);
         self.demod_read_reg(handle, 0x0a, 0x01, 1)
+    }
+
+    fn read_array(&self, handle: &libusb::DeviceHandle, block: u8, addr: u16, arr: &mut [u8], len: u8) -> usize {
+        let type_vendor_in = libusb::request_type(Direction::In, RequestType::Vendor, Recipient::Device);
+        let index: u16 = (block as u16) << 8;
+        handle.read_control(type_vendor_in, 0, addr, index, arr, CTRL_TIMEOUT).unwrap()
+    }
+
+    fn write_array(&self, handle: &libusb::DeviceHandle, block: u8, addr: u16, arr: &[u8], len: u8) -> usize {
+        let type_vendor_out = libusb::request_type(Direction::Out, RequestType::Vendor, Recipient::Device);
+        let index: u16 = ((block as u16) << 8) | 0x10;
+        handle.write_control(type_vendor_out, 0, addr, index, arr, CTRL_TIMEOUT).unwrap()
+    }
+
+    fn i2c_read_reg(&self, handle: &libusb::DeviceHandle, i2c_addr: u8, reg: u8) -> u8 {
+        let addr: u16 = i2c_addr.into();
+        let reg: [u8; 1] = [reg];
+        let mut data: [u8; 1] = [0];
+
+        self.write_array(&handle, BLOCK_IICB, addr, &reg, 1);
+        self.read_array(&handle, BLOCK_IICB, addr, &mut data, 1);
+
+        data[0]
+    }
+
+    fn set_i2c_repeater(&self, handle: &libusb::DeviceHandle, on: bool) {
+        let val = match on {
+            true => 0x18,
+            false => 0x10
+        };
+        self.demod_write_reg(&handle, 1, 0x01, val, 1);
     }
 
     fn init_baseband(&self, handle: &libusb::DeviceHandle) {
@@ -179,6 +214,15 @@ impl<'a> RtlSdr<'a> {
                     // reset device is write didn't succeed
 
                     self.init_baseband(&handle);
+                    self.set_i2c_repeater(&handle, true);
+
+                    let reg = self.i2c_read_reg(&handle, R820T_I2C_ADDR, R82XX_CHECK_ADDR);
+                    if reg == R82XX_CHECK_VAL {
+                        println!("Found Rafael Micro R820T tuner\n");
+                    }
+                    else {
+                        println!("problem");
+                    }
 
                     if has_kernel_driver {
                         handle.attach_kernel_driver(self.iface_id).ok();
