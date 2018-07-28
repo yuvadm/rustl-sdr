@@ -21,6 +21,7 @@ const ADDR_SYS_DEMOD_CTL: u16 = 0x3000;
 const ADDR_SYS_DEMOD_CTL_1: u16 = 0x300b;
 
 const INTERFACE_ID: u8 = 0;
+
 const CTRL_TIMEOUT: Duration = Duration::from_millis(300);
 const KNOWN_DEVICES: [(u16, u16, &str); 2] = [
     (0x0bda, 0x2832, "Generic RTL2832U"),
@@ -44,7 +45,7 @@ impl<'a> RtlSdr<'a> {
     }
 
     fn write_reg(&self, handle: &libusb::DeviceHandle, block: u16, addr: u16, val: u16, len: u8) -> usize {
-        let vendor_out = libusb::request_type(Direction::Out, RequestType::Vendor, Recipient::Device);
+        let type_vendor_out = libusb::request_type(Direction::Out, RequestType::Vendor, Recipient::Device);
         let mut data: [u8; 2] = [0, 0];
         let index: u16 = (block << 8) | 0x10;
 
@@ -56,10 +57,38 @@ impl<'a> RtlSdr<'a> {
         };
         data[1] = (val & 0xff) as u8;
 
-        match handle.write_control(vendor_out, 0, addr, index, &data, CTRL_TIMEOUT) {
+        match handle.write_control(type_vendor_out, 0, addr, index, &data, CTRL_TIMEOUT) {
             Ok(n) => n,
             Err(_) => 0
         }
+    }
+
+    fn demod_read_reg(&self, handle: &libusb::DeviceHandle, page: u8, addr: u16, len: u8) -> u16 {
+        let type_vendor_in = libusb::request_type(Direction::In, RequestType::Vendor, Recipient::Device);
+        let mut data: [u8; 2] = [0, 0];
+        let index: u16 = page.into();
+        let addr = (addr << 8) | 0x20;
+        let res = handle.write_control(type_vendor_in, 0, addr, index, &data, CTRL_TIMEOUT);
+        let reg: u16 = ((data[1] as u16) << 8) | (data[0] as u16);
+        return reg;
+    }
+
+
+    fn demod_write_reg(&self, handle: &libusb::DeviceHandle, page: u8, addr: u16, val: u16, len: u8) -> u16 {
+        let type_vendor_out = libusb::request_type(Direction::Out, RequestType::Vendor, Recipient::Device);
+        let mut data: [u8; 2] = [0, 0];
+        let index: u16 = (0x10 | page).into();
+        let addr = (addr << 8) | 0x20;
+
+        data[0] = if len == 1 {
+            (val & 0xff) as u8
+        } else {
+            (val >> 8) as u8
+        };
+        data[1] = (val & 0xff) as u8;
+
+        let res = handle.write_control(type_vendor_out, 0, addr, index, &data, CTRL_TIMEOUT);
+        self.demod_read_reg(handle, 0x0a, 0x01, 1)
     }
 
     fn init_baseband(&self, handle: &libusb::DeviceHandle) {
@@ -72,45 +101,46 @@ impl<'a> RtlSdr<'a> {
         self.write_reg(&handle, BLOCK_SYSB, ADDR_SYS_DEMOD_CTL_1, 0x22, 1);
         self.write_reg(&handle, BLOCK_SYSB, ADDR_SYS_DEMOD_CTL, 0xe8, 1);
 
-        /* reset demod (bit 3, soft_rst) */
-        // rtlsdr_demod_write_reg(dev, 1, 0x01, 0x14, 1);
-        // rtlsdr_demod_write_reg(dev, 1, 0x01, 0x10, 1);
+        // reset demod (bit 3, soft_rst)
+        self.demod_write_reg(&handle, 1, 0x01, 0x14, 1);
+        self.demod_write_reg(&handle, 1, 0x01, 0x10, 1);
 
-        // /* disable spectrum inversion and adjacent channel rejection */
-        // rtlsdr_demod_write_reg(dev, 1, 0x15, 0x00, 1);
-        // rtlsdr_demod_write_reg(dev, 1, 0x16, 0x0000, 2);
+        // disable spectrum inversion and adjacent channel rejection
+        self.demod_write_reg(&handle, 1, 0x15, 0x00, 1);
+        self.demod_write_reg(&handle, 1, 0x16, 0x0000, 2);
 
-        // /* clear both DDC shift and IF frequency registers  */
-        // for (i = 0; i < 6; i++)
-        //     rtlsdr_demod_write_reg(dev, 1, 0x16 + i, 0x00, 1);
+        // clear both DDC shift and IF frequency registers
+        for i in 0..6 {
+            self.demod_write_reg(&handle, 1, 0x16 + i, 0x00, 1);
+        }
 
-        // rtlsdr_set_fir(dev);
+        // rtlsdr_set_fir(&handle);
 
-        // /* enable SDR mode, disable DAGC (bit 5) */
-        // rtlsdr_demod_write_reg(dev, 0, 0x19, 0x05, 1);
+        // enable SDR mode, disable DAGC (bit 5)
+        self.demod_write_reg(&handle, 0, 0x19, 0x05, 1);
 
-        // /* init FSM state-holding register */
-        // rtlsdr_demod_write_reg(dev, 1, 0x93, 0xf0, 1);
-        // rtlsdr_demod_write_reg(dev, 1, 0x94, 0x0f, 1);
+        // init FSM state-holding register
+        self.demod_write_reg(&handle, 1, 0x93, 0xf0, 1);
+        self.demod_write_reg(&handle, 1, 0x94, 0x0f, 1);
 
-        // /* disable AGC (en_dagc, bit 0) (this seems to have no effect) */
-        // rtlsdr_demod_write_reg(dev, 1, 0x11, 0x00, 1);
+        // disable AGC (en_dagc, bit 0) (this seems to have no effect)
+        self.demod_write_reg(&handle, 1, 0x11, 0x00, 1);
 
-        // /* disable RF and IF AGC loop */
-        // rtlsdr_demod_write_reg(dev, 1, 0x04, 0x00, 1);
+        // disable RF and IF AGC loop
+        self.demod_write_reg(&handle, 1, 0x04, 0x00, 1);
 
-        // /* disable PID filter (enable_PID = 0) */
-        // rtlsdr_demod_write_reg(dev, 0, 0x61, 0x60, 1);
+        // disable PID filter (enable_PID = 0)
+        self.demod_write_reg(&handle, 0, 0x61, 0x60, 1);
 
-        // /* opt_adc_iq = 0, default ADC_I/ADC_Q datapath */
-        // rtlsdr_demod_write_reg(dev, 0, 0x06, 0x80, 1);
+        // opt_adc_iq = 0, default ADC_I/ADC_Q datapath
+        self.demod_write_reg(&handle, 0, 0x06, 0x80, 1);
 
-        // /* Enable Zero-IF mode (en_bbin bit), DC cancellation (en_dc_est),
-        // * IQ estimation/compensation (en_iq_comp, en_iq_est) */
-        // rtlsdr_demod_write_reg(dev, 1, 0xb1, 0x1b, 1);
+        // Enable Zero-IF mode (en_bbin bit), DC cancellation (en_dc_est),
+        // IQ estimation/compensation (en_iq_comp, en_iq_est)
+        self.demod_write_reg(&handle, 1, 0xb1, 0x1b, 1);
 
-        // /* disable 4.096 MHz clock output on pin TP_CK0 */
-        // rtlsdr_demod_write_reg(dev, 0, 0x0d, 0x83, 1);
+        // disable 4.096 MHz clock output on pin TP_CK0
+        self.demod_write_reg(&handle, 0, 0x0d, 0x83, 1);
     }
 
     pub fn init(&mut self) {
