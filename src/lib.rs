@@ -25,23 +25,27 @@ const INTERFACE_ID: u8 = 0;
 
 // extract this shit to an external file (but can't get it to fucking work)
 #[allow(non_snake_case)]
-pub struct Device {
-    pub I2C_ADDR: u8,
-    pub CHECK_ADDR: u8,
-    pub CHECK_VAL: u8
+struct Device {
+    NAME: &'static str,
+    I2C_ADDR: u8,
+    CHECK_ADDR: u8,
+    CHECK_VAL: u8
 }
 
-pub const R820T: Device = Device {
-    I2C_ADDR: 0x34,
-    CHECK_ADDR: 0x00,
-    CHECK_VAL: 0x69
-};
-
-pub const FC0013: Device = Device {
-    I2C_ADDR: 0xc6,
-    CHECK_ADDR: 0x00,
-    CHECK_VAL: 0xa3
-};
+const DEVICES: [Device; 2] = [
+    Device {
+        NAME: "Rafael Micro R820T",
+        I2C_ADDR: 0x34,
+        CHECK_ADDR: 0x00,
+        CHECK_VAL: 0x69
+    },
+    Device {
+        NAME: "Fitipower FC0013",
+        I2C_ADDR: 0xc6,
+        CHECK_ADDR: 0x00,
+        CHECK_VAL: 0xa3
+    }
+];
 ///////////
 
 const CTRL_TIMEOUT: Duration = Duration::from_millis(300);
@@ -234,23 +238,16 @@ impl<'a> RtlSdr<'a> {
                     self.init_baseband(&handle);
                     self.set_i2c_repeater(&handle, true);
 
-                    match self.i2c_read_reg(&handle, R820T.I2C_ADDR, R820T.CHECK_ADDR) {
-                        Ok(reg) => {
-                            if reg == R820T.CHECK_VAL {
-                                println!("Found Rafael Micro R820T tuner\n");
-                            }
-                        },
-                        Err(_) => {}
-                    };
-
-                    match self.i2c_read_reg(&handle, FC0013.I2C_ADDR, FC0013.CHECK_ADDR) {
-                        Ok(reg) => {
-                            if reg == FC0013.CHECK_VAL {
-                                println!("Found Fitipower FC0013 tuner\n");
-                            }
-                        },
-                        Err(_) => {}
-                    };
+                    for d in &DEVICES {
+                        match self.i2c_read_reg(&handle, d.I2C_ADDR, d.CHECK_ADDR) {
+                            Ok(reg) => {
+                                if reg == d.CHECK_VAL {
+                                    println!("Found {} tuner\n", d.NAME);
+                                }
+                            },
+                            Err(_) => {}
+                        };
+                    }
 
                     if has_kernel_driver {
                         handle.attach_kernel_driver(self.iface_id).ok();
@@ -269,8 +266,6 @@ mod tests {
     fn test_init() {
         let ctx = libusb::Context::new().unwrap();
         let mut rtlsdr = RtlSdr::new(&ctx);
-        assert!(rtlsdr.dev.is_none());
         rtlsdr.init();
-        assert!(rtlsdr.dev.is_some());
     }
 }
