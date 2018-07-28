@@ -17,7 +17,6 @@ pub struct RtlSdr<'a> {
     ctx: &'a libusb::Context,
     dev: Option<libusb::DeviceHandle<'a>>,
     iface_id: u8,
-    iface: Option<libusb::Interface<'a>>
 }
 
 impl<'a> RtlSdr<'a> {
@@ -27,15 +26,14 @@ impl<'a> RtlSdr<'a> {
             ctx,
             dev: None,
             iface_id: INTERFACE_ID,
-            iface: None
         }
     }
 
     pub fn init(&mut self) {
-        self.dev = self.find_device();
+        self.find_device();
     }
 
-    fn write_reg(&self, handle: &libusb::DeviceHandle, block: u16, addr: u16, val: u8, len: u8) -> usize {
+    fn write_reg(&self, handle: &libusb::DeviceHandle, block: u16, addr: u16, val: u8, _len: u8) -> usize {
         let vendor_out = libusb::request_type(Direction::Out, RequestType::Vendor, Recipient::Device);
         let mut data: [u8; 2] = [0, 0];
         let index: u16 = (block << 8) | 0x10;
@@ -49,7 +47,7 @@ impl<'a> RtlSdr<'a> {
         }
     }
 
-    pub fn find_device(&self) -> Option<libusb::DeviceHandle<'a>> {
+    pub fn find_device(&mut self) {
         for mut dev in self.ctx.devices().unwrap().iter() {
             let desc = dev.device_descriptor().unwrap();
             let vid = desc.vendor_id();
@@ -67,7 +65,7 @@ impl<'a> RtlSdr<'a> {
                             _ => false
                     };
 
-                    let iface = handle.claim_interface(self.iface_id).unwrap();
+                    let _iface = handle.claim_interface(self.iface_id).unwrap();
 
                     let res = self.write_reg(&handle, BLOCK_USBB, ADDR_USB_SYSCTL, 0x09, 1);
                     println!("Got {}", res);
@@ -76,11 +74,10 @@ impl<'a> RtlSdr<'a> {
                         handle.attach_kernel_driver(self.iface_id).ok();
                     }
 
-                    return Some(handle)
+                    self.dev = Some(handle);
                 }
             }
         }
-        None
     }
 }
 
