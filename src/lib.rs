@@ -72,12 +72,12 @@ impl<'a> RtlSdr<'a> {
         }
     }
 
-    fn demod_read_reg(&self, handle: &libusb::DeviceHandle, page: u8, addr: u16, len: u8) -> u16 {
+    fn demod_read_reg(&self, handle: &libusb::DeviceHandle, page: u8, addr: u16, _len: u8) -> u16 {
         let type_vendor_in = libusb::request_type(Direction::In, RequestType::Vendor, Recipient::Device);
-        let mut data: [u8; 2] = [0, 0];
+        let data: [u8; 2] = [0, 0];
         let index: u16 = page.into();
         let addr = (addr << 8) | 0x20;
-        let res = handle.write_control(type_vendor_in, 0, addr, index, &data, CTRL_TIMEOUT);
+        let _res = handle.write_control(type_vendor_in, 0, addr, index, &data, CTRL_TIMEOUT);
         let reg: u16 = ((data[1] as u16) << 8) | (data[0] as u16);
         return reg;
     }
@@ -96,7 +96,7 @@ impl<'a> RtlSdr<'a> {
         };
         data[1] = (val & 0xff) as u8;
 
-        let res = handle.write_control(type_vendor_out, 0, addr, index, &data, CTRL_TIMEOUT);
+        let _res = handle.write_control(type_vendor_out, 0, addr, index, &data, CTRL_TIMEOUT);
         self.demod_read_reg(handle, 0x0a, 0x01, 1)
     }
 
@@ -175,7 +175,7 @@ impl<'a> RtlSdr<'a> {
 
                     let _iface = handle.claim_interface(self.iface_id).unwrap();
 
-                    let res = self.write_reg(&handle, BLOCK_USBB, ADDR_USB_SYSCTL, 0x09, 1);
+                    let _res = self.write_reg(&handle, BLOCK_USBB, ADDR_USB_SYSCTL, 0x09, 1);
                     // reset device is write didn't succeed
 
                     self.init_baseband(&handle);
