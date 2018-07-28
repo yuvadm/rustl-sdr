@@ -3,29 +3,46 @@ extern crate libusb;
 use std::time::Duration;
 use libusb::{Direction, RequestType, Recipient};
 
-const BLOCK_DEMODB: u16 = 0;
+// const BLOCK_DEMODB: u16 = 0;
 const BLOCK_USBB: u16 = 1;
 const BLOCK_SYSB: u16 = 2;
-const BLOCK_TUNB: u16 = 3;
+// const BLOCK_TUNB: u16 = 3;
 const BLOCK_IICB: u8 = 6;
 
 const ADDR_USB_SYSCTL: u16 = 0x2000;
-const ADDR_USB_CTRL: u16 = 0x2010;
-const ADDR_USB_STAT: u16 = 0x2014;
-const ADDR_USB_EPA_CFG: u16 = 0x2144;
+// const ADDR_USB_CTRL: u16 = 0x2010;
+// const ADDR_USB_STAT: u16 = 0x2014;
+// const ADDR_USB_EPA_CFG: u16 = 0x2144;
 const ADDR_USB_EPA_CTL: u16 = 0x2148;
 const ADDR_USB_EPA_MAXPKT: u16 = 0x2158;
-const ADDR_USB_EPA_MAXPKT_2: u16 = 0x215a;
-const ADDR_USB_EPA_FIFO_CFG: u16 = 0x2160;
+// const ADDR_USB_EPA_MAXPKT_2: u16 = 0x215a;
+// const ADDR_USB_EPA_FIFO_CFG: u16 = 0x2160;
 
 const ADDR_SYS_DEMOD_CTL: u16 = 0x3000;
 const ADDR_SYS_DEMOD_CTL_1: u16 = 0x300b;
 
-const R820T_I2C_ADDR: u8 = 0x34;
-const R82XX_CHECK_ADDR: u8 = 0x00;
-const R82XX_CHECK_VAL: u8 = 0x69;
-
 const INTERFACE_ID: u8 = 0;
+
+// extract this shit to an external file (but can't get it to fucking work)
+#[allow(non_snake_case)]
+pub struct Device {
+    pub I2C_ADDR: u8,
+    pub CHECK_ADDR: u8,
+    pub CHECK_VAL: u8
+}
+
+pub const R820T: Device = Device {
+    I2C_ADDR: 0x34,
+    CHECK_ADDR: 0x00,
+    CHECK_VAL: 0x69
+};
+
+pub const FC0013: Device = Device {
+    I2C_ADDR: 0xc6,
+    CHECK_ADDR: 0x00,
+    CHECK_VAL: 0xa3
+};
+///////////
 
 const CTRL_TIMEOUT: Duration = Duration::from_millis(300);
 const KNOWN_DEVICES: [(u16, u16, &str); 2] = [
@@ -42,9 +59,8 @@ const FIR_DEFAULT: [u8; FIR_LENGTH] = [
 
 pub struct RtlSdr<'a> {
     ctx: &'a libusb::Context,
-    dev: Option<libusb::DeviceHandle<'a>>,
-    iface_id: u8,
-    fir: [u8; FIR_LENGTH]
+    // dev: Option<libusb::DeviceHandle<'a>>,
+    iface_id: u8
 }
 
 impl<'a> RtlSdr<'a> {
@@ -52,9 +68,8 @@ impl<'a> RtlSdr<'a> {
     pub fn new(ctx: &'a libusb::Context) -> RtlSdr<'a> {
         RtlSdr {
             ctx,
-            dev: None,
-            iface_id: INTERFACE_ID,
-            fir: FIR_DEFAULT
+            // dev: None,
+            iface_id: INTERFACE_ID
         }
     }
 
@@ -104,27 +119,30 @@ impl<'a> RtlSdr<'a> {
         self.demod_read_reg(handle, 0x0a, 0x01, 1)
     }
 
-    fn read_array(&self, handle: &libusb::DeviceHandle, block: u8, addr: u16, arr: &mut [u8], len: u8) -> usize {
+    fn read_array(&self, handle: &libusb::DeviceHandle, block: u8, addr: u16, arr: &mut [u8], _len: u8) -> usize {
         let type_vendor_in = libusb::request_type(Direction::In, RequestType::Vendor, Recipient::Device);
         let index: u16 = (block as u16) << 8;
         handle.read_control(type_vendor_in, 0, addr, index, arr, CTRL_TIMEOUT).unwrap()
     }
 
-    fn write_array(&self, handle: &libusb::DeviceHandle, block: u8, addr: u16, arr: &[u8], len: u8) -> usize {
+    fn write_array(&self, handle: &libusb::DeviceHandle, block: u8, addr: u16, arr: &[u8], _len: u8) -> Result<usize, libusb::Error> {
         let type_vendor_out = libusb::request_type(Direction::Out, RequestType::Vendor, Recipient::Device);
         let index: u16 = ((block as u16) << 8) | 0x10;
-        handle.write_control(type_vendor_out, 0, addr, index, arr, CTRL_TIMEOUT).unwrap()
+        handle.write_control(type_vendor_out, 0, addr, index, arr, CTRL_TIMEOUT)
     }
 
-    fn i2c_read_reg(&self, handle: &libusb::DeviceHandle, i2c_addr: u8, reg: u8) -> u8 {
+    fn i2c_read_reg(&self, handle: &libusb::DeviceHandle, i2c_addr: u8, reg: u8) -> Result<u8, &str> {
         let addr: u16 = i2c_addr.into();
         let reg: [u8; 1] = [reg];
         let mut data: [u8; 1] = [0];
 
-        self.write_array(&handle, BLOCK_IICB, addr, &reg, 1);
-        self.read_array(&handle, BLOCK_IICB, addr, &mut data, 1);
-
-        data[0]
+        match self.write_array(&handle, BLOCK_IICB, addr, &reg, 1) {
+            Ok(_res) => {
+                self.read_array(&handle, BLOCK_IICB, addr, &mut data, 1);
+                Ok(data[0])
+            },
+            Err(_) => Err("Error")
+        }
     }
 
     fn set_i2c_repeater(&self, handle: &libusb::DeviceHandle, on: bool) {
@@ -216,13 +234,23 @@ impl<'a> RtlSdr<'a> {
                     self.init_baseband(&handle);
                     self.set_i2c_repeater(&handle, true);
 
-                    let reg = self.i2c_read_reg(&handle, R820T_I2C_ADDR, R82XX_CHECK_ADDR);
-                    if reg == R82XX_CHECK_VAL {
-                        println!("Found Rafael Micro R820T tuner\n");
-                    }
-                    else {
-                        println!("problem");
-                    }
+                    match self.i2c_read_reg(&handle, R820T.I2C_ADDR, R820T.CHECK_ADDR) {
+                        Ok(reg) => {
+                            if reg == R820T.CHECK_VAL {
+                                println!("Found Rafael Micro R820T tuner\n");
+                            }
+                        },
+                        Err(_) => {}
+                    };
+
+                    match self.i2c_read_reg(&handle, FC0013.I2C_ADDR, FC0013.CHECK_ADDR) {
+                        Ok(reg) => {
+                            if reg == FC0013.CHECK_VAL {
+                                println!("Found Fitipower FC0013 tuner\n");
+                            }
+                        },
+                        Err(_) => {}
+                    };
 
                     if has_kernel_driver {
                         handle.attach_kernel_driver(self.iface_id).ok();
