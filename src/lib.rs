@@ -28,17 +28,18 @@ const KNOWN_DEVICES: [(u16, u16, &str); 2] = [
     (0x0bda, 0x2838, "Generic RTL2832U OEM")
 ];
 
-const FIR_LENGTH: usize = 16;
-const FIR_DEFAULT: [i16; FIR_LENGTH] = [
-	-54, -36, -41, -40, -32, -14, 14, 53,	// 8 bit signed
-	101, 156, 215, 273, 327, 372, 404, 421	// 12 bit signed
+const FIR_LENGTH: usize = 20;
+const FIR_DEFAULT: [u8; FIR_LENGTH] = [
+    0xca, 0xdc, 0xd7, 0xd8, 0xe0, 0xf2, 0x0e, 0x35, 0x06, 0x50,
+    0x9c, 0x0d, 0x71, 0x11, 0x14, 0x71, 0x74, 0x19, 0x41, 0xa5,
 ];
+
 
 pub struct RtlSdr<'a> {
     ctx: &'a libusb::Context,
     dev: Option<libusb::DeviceHandle<'a>>,
     iface_id: u8,
-    fir: [i16; FIR_LENGTH]
+    fir: [u8; FIR_LENGTH]
 }
 
 impl<'a> RtlSdr<'a> {
@@ -99,36 +100,6 @@ impl<'a> RtlSdr<'a> {
         self.demod_read_reg(handle, 0x0a, 0x01, 1)
     }
 
-    fn set_fir(&self, handle: &libusb::DeviceHandle) {
-        let fir: [i16; 20];
-
-        /* format: int8_t[8] */
-        for i in 0..8 {
-            let val = FIR_DEFAULT[i];
-            if val < -128 || val > 127 {
-                return;
-            }
-            fir[i] = val;
-        }
-
-        /* format: int12_t[8] */
-        for idx in 0..4 {
-            let i = idx * 2;
-            let val0 = FIR_DEFAULT[8+i];
-            let val1 = FIR_DEFAULT[8+i+1];
-            if val0 < -2048 || val0 > 2047 || val1 < -2048 || val1 > 2047 {
-                return;
-            }
-            fir[8+i*3/2] = val0 >> 4;
-            fir[8+i*3/2+1] = (val0 << 4) | ((val1 >> 8) & 0x0f);
-            fir[8+i*3/2+2] = val1;
-        }
-
-        for i in 0..20 {
-            self.demod_write_reg(handle, 1, 0x1c + i, fir[i], 1);
-        }
-    }
-
     fn init_baseband(&self, handle: &libusb::DeviceHandle) {
         // init USB
         self.write_reg(&handle, BLOCK_USBB, ADDR_USB_SYSCTL, 0x09, 1);
@@ -152,7 +123,10 @@ impl<'a> RtlSdr<'a> {
             self.demod_write_reg(&handle, 1, 0x16 + i, 0x00, 1);
         }
 
-        self.set_fir(&handle);
+        // set the FIR coefficients
+        for i in 0..FIR_LENGTH {
+            self.demod_write_reg(&handle, 1, (0x1c + i) as u16, FIR_DEFAULT[i].into(), 1);
+        }
 
         // enable SDR mode, disable DAGC (bit 5)
         self.demod_write_reg(&handle, 0, 0x19, 0x05, 1);
