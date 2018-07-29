@@ -223,10 +223,10 @@ impl<'a> RtlSdr<'a> {
                     self.set_i2c_repeater(&handle, true);
 
                     for d in &DEVICES {
-                        match self.i2c_read_reg(&handle, d.I2C_ADDR, d.CHECK_ADDR) {
+                        match self.i2c_read_reg(&handle, d.i2c_addr, d.check_addr) {
                             Ok(reg) => {
-                                if reg == d.CHECK_VAL {
-                                    println!("Found {} tuner\n", d.NAME);
+                                if reg == d.check_val {
+                                    println!("Found {} tuner\n", d.name);
                                 }
                             },
                             Err(_) => {}

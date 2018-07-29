@@ -1,8 +1,8 @@
 use super::Device;
 
 pub const FC0013: Device = Device {
-    NAME: "Fitipower FC0013",
-    I2C_ADDR: 0xc6,
-    CHECK_ADDR: 0x00,
-    CHECK_VAL: 0xa3
+    name: "Fitipower FC0013",
+    i2c_addr: 0xc6,
+    check_addr: 0x00,
+    check_val: 0xa3
 };
