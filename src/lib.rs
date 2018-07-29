@@ -27,9 +27,9 @@ const INTERFACE_ID: u8 = 0;
 
 use devices::*;
 
-const DEVICES: [Device; 2] = [
-    fc0013::FC0013,
-    r820t::R820T
+const DEVICES: [DeviceInfo; 2] = [
+    fc0013::DEVICE_INFO,
+    r820t::DEVICE_INFO
 ];
 
 const CTRL_TIMEOUT: Duration = Duration::from_millis(300);
