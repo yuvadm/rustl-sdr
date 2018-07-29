@@ -1,5 +1,7 @@
 extern crate libusb;
 
+mod devices;
+
 use std::time::Duration;
 use libusb::{Direction, RequestType, Recipient};
 
@@ -23,30 +25,12 @@ const ADDR_SYS_DEMOD_CTL_1: u16 = 0x300b;
 
 const INTERFACE_ID: u8 = 0;
 
-// extract this shit to an external file (but can't get it to fucking work)
-#[allow(non_snake_case)]
-struct Device {
-    NAME: &'static str,
-    I2C_ADDR: u8,
-    CHECK_ADDR: u8,
-    CHECK_VAL: u8
-}
+use devices::*;
 
 const DEVICES: [Device; 2] = [
-    Device {
-        NAME: "Rafael Micro R820T",
-        I2C_ADDR: 0x34,
-        CHECK_ADDR: 0x00,
-        CHECK_VAL: 0x69
-    },
-    Device {
-        NAME: "Fitipower FC0013",
-        I2C_ADDR: 0xc6,
-        CHECK_ADDR: 0x00,
-        CHECK_VAL: 0xa3
-    }
+    fc0013::FC0013,
+    r820t::R820T
 ];
-///////////
 
 const CTRL_TIMEOUT: Duration = Duration::from_millis(300);
 const KNOWN_DEVICES: [(u16, u16, &str); 2] = [
