@@ -196,7 +196,7 @@ impl<'a> RtlSdr<'a> {
         self.demod_write_reg(&handle, 0, 0x0d, 0x83, 1);
     }
 
-    pub fn init(&mut self) {
+    pub fn open(&mut self) {
         for mut dev in self.ctx.devices().unwrap().iter() {
             let desc = dev.device_descriptor().unwrap();
             let vid = desc.vendor_id();
@@ -250,6 +250,6 @@ mod tests {
     fn test_init() {
         let ctx = libusb::Context::new().unwrap();
         let mut rtlsdr = RtlSdr::new(&ctx);
-        rtlsdr.init();
+        rtlsdr.open();
     }
 }

@@ -37,7 +37,7 @@ The usual:
 
 ```bash
 $ cargo build
-$ cargo test
+$ cargo test -- --nocapture
 ```
 
 Since there isn't (?) any good USB device mocking setup, for tests to pass an RTL-SDR device must be connected.
