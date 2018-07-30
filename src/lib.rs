@@ -4,6 +4,7 @@ mod devices;
 
 use std::time::Duration;
 use libusb::{Direction, RequestType, Recipient};
+use devices::*;
 
 // const BLOCK_DEMODB: u16 = 0;
 const BLOCK_USBB: u16 = 1;
@@ -24,13 +25,6 @@ const ADDR_SYS_DEMOD_CTL: u16 = 0x3000;
 const ADDR_SYS_DEMOD_CTL_1: u16 = 0x300b;
 
 const INTERFACE_ID: u8 = 0;
-
-use devices::*;
-
-const DEVICES: [DeviceInfo; 2] = [
-    fc0013::DEVICE_INFO,
-    r820t::DEVICE_INFO
-];
 
 const CTRL_TIMEOUT: Duration = Duration::from_millis(300);
 const KNOWN_DEVICES: [(u16, u16, &str); 2] = [
@@ -222,14 +216,32 @@ impl<'a> RtlSdr<'a> {
                     self.init_baseband(&handle);
                     self.set_i2c_repeater(&handle, true);
 
-                    for d in &DEVICES {
-                        match self.i2c_read_reg(&handle, d.i2c_addr, d.check_addr) {
+                    let d = r820t::R820T::new();
+                    let found = match self.i2c_read_reg(&handle, d.device.i2c_addr, d.device.check_addr) {
+                        Ok(reg) => {
+                            if reg == d.device.check_val {
+                                println!("Found {} tuner\n", d.device.name);
+                                true
+                            }
+                            else {
+                                false
+                            }
+                        },
+                        Err(_) => false
+                    };
+                    if !found {
+                        let d = fc0013::FC0013::new();
+                        let _found = match self.i2c_read_reg(&handle, d.device.i2c_addr, d.device.check_addr) {
                             Ok(reg) => {
-                                if reg == d.check_val {
-                                    println!("Found {} tuner\n", d.name);
+                                if reg == d.device.check_val {
+                                    println!("Found {} tuner\n", d.device.name);
+                                    true
+                                }
+                                else {
+                                    false
                                 }
                             },
-                            Err(_) => {}
+                            Err(_) => false
                         };
                     }
 

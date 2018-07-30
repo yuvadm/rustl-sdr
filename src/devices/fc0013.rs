@@ -1,7 +1,7 @@
-use super::{DeviceInfo, Actions};
+use super::{DeviceInfo, Device};
 
 pub struct FC0013 {
-    device: DeviceInfo
+    pub device: DeviceInfo
 }
 
 pub const DEVICE_INFO: DeviceInfo = DeviceInfo {
@@ -13,14 +13,14 @@ pub const DEVICE_INFO: DeviceInfo = DeviceInfo {
 };
 
 impl FC0013 {
-    fn new() -> FC0013 {
+    pub fn new() -> FC0013 {
         FC0013 {
             device: DEVICE_INFO
         }
     }
 }
 
-impl Actions for FC0013 {
+impl Device for FC0013 {
     fn init(&self) {
         println!("Init {}", self.device.name);
     }

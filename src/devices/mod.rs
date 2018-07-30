@@ -9,6 +9,6 @@ pub struct DeviceInfo {
     pub check_val: u8
 }
 
-pub trait Actions {
+pub trait Device {
     fn init(&self);
 }

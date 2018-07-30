@@ -1,7 +1,7 @@
-use super::{DeviceInfo, Actions};
+use super::{DeviceInfo, Device};
 
 pub struct R820T {
-    device: DeviceInfo
+    pub device: DeviceInfo
 }
 
 pub const DEVICE_INFO: DeviceInfo = DeviceInfo {
@@ -13,14 +13,14 @@ pub const DEVICE_INFO: DeviceInfo = DeviceInfo {
 };
 
 impl R820T {
-    fn new() -> R820T {
+    pub fn new() -> R820T {
         R820T {
             device: DEVICE_INFO
         }
     }
 }
 
-impl Actions for R820T {
+impl Device for R820T {
     fn init(&self) {
         println!("Init {}", self.device.name);
     }
