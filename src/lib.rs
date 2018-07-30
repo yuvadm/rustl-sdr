@@ -190,6 +190,13 @@ impl<'a> RtlSdr<'a> {
         self.demod_write_reg(&handle, 0, 0x0d, 0x83, 1);
     }
 
+    fn deinit_baseband(&self, handle: &libusb::DeviceHandle) {
+        // deinit tuner?
+
+        // power off demod and ADCs
+        self.write_reg(&handle, BLOCK_SYSB, ADDR_SYS_DEMOD_CTL, 0x20, 1);
+    }
+
     pub fn open(&mut self) {
         for mut dev in self.ctx.devices().unwrap().iter() {
             let desc = dev.device_descriptor().unwrap();
@@ -244,6 +251,8 @@ impl<'a> RtlSdr<'a> {
                             Err(_) => false
                         };
                     }
+
+                    self.deinit_baseband(&handle);
 
                     if has_kernel_driver {
                         handle.attach_kernel_driver(self.iface_id).ok();
