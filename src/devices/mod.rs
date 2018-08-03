@@ -1,3 +1,5 @@
+use usb::Usb;
+
 pub mod fc0013;
 pub mod r820t;
 
@@ -10,5 +12,5 @@ pub struct DeviceInfo {
 }
 
 pub trait Device {
-    fn init(&self);
+    fn init(&self, &Usb);
 }
