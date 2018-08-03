@@ -29,8 +29,8 @@ const FIR_DEFAULT: [u8; FIR_LENGTH] = [
 ];
 
 const DEF_RTL_XTAL_FREQ: u32 = 28800000;
-const MIN_RTL_XTAL_FREQ: u32 = DEF_RTL_XTAL_FREQ - 1000;
-const MAX_RTL_XTAL_FREQ: u32 = DEF_RTL_XTAL_FREQ + 1000;
+// const MIN_RTL_XTAL_FREQ: u32 = DEF_RTL_XTAL_FREQ - 1000;
+// const MAX_RTL_XTAL_FREQ: u32 = DEF_RTL_XTAL_FREQ + 1000;
 
 const CTRL_TIMEOUT: Duration = Duration::from_millis(300);
 

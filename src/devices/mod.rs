@@ -1,5 +1,3 @@
-use usb::Usb;
-
 pub mod fc0013;
 pub mod r820t;
 
@@ -12,5 +10,11 @@ pub struct DeviceInfo {
 }
 
 pub trait Device {
-    fn init(&self, &Usb);
+    fn init(&self);
+    fn exit(&self);
+    fn set_freq(&self, freq: u32);
+    fn set_bw(&self, bw: u32);
+    fn set_gain(&self, gain: u32);
+    fn set_if_gain(&self, if_gain: u32);
+    fn set_gain_mode(&self, mode: bool);
 }

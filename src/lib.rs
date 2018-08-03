@@ -56,7 +56,7 @@ impl<'a> RtlSdr<'a> {
                         usb.init_baseband();
                         usb.set_i2c_repeater( true);
 
-                        let d = r820t::R820T::new();
+                        let d = r820t::R820T::new(&usb);
                         let _found = match usb.i2c_read_reg(d.device.i2c_addr, d.device.check_addr) {
                             Ok(reg) => {
                                 if reg == d.device.check_val {
@@ -70,7 +70,7 @@ impl<'a> RtlSdr<'a> {
                             Err(_) => false
                         };
 
-                        d.init(&usb);
+                        d.init();
 
                         usb.deinit_baseband();
                     }

@@ -1,5 +1,4 @@
 use super::{DeviceInfo, Device};
-use usb::Usb;
 
 #[allow(dead_code)]
 pub struct FC0013 {
@@ -25,7 +24,31 @@ impl FC0013 {
 }
 
 impl Device for FC0013 {
-    fn init(&self, _usb: &Usb) {
+    fn init(&self) {
         println!("Init {}", self.device.name);
+    }
+
+    fn exit(&self){
+        unimplemented!()
+    }
+
+    fn set_freq(&self, _freq: u32){
+        unimplemented!()
+    }
+
+    fn set_bw(&self, _bw: u32){
+        unimplemented!()
+    }
+
+    fn set_gain(&self, _gain: u32){
+        unimplemented!()
+    }
+
+    fn set_if_gain(&self, _if_gain: u32){
+        unimplemented!()
+    }
+
+    fn set_gain_mode(&self, _mode: bool){
+        unimplemented!()
     }
 }
