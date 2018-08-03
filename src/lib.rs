@@ -57,7 +57,7 @@ impl<'a> RtlSdr<'a> {
                         usb.set_i2c_repeater( true);
 
                         let d = r820t::R820T::new();
-                        let found = match usb.i2c_read_reg(d.device.i2c_addr, d.device.check_addr) {
+                        let _found = match usb.i2c_read_reg(d.device.i2c_addr, d.device.check_addr) {
                             Ok(reg) => {
                                 if reg == d.device.check_val {
                                     println!("Found {} tuner\n", d.device.name);
@@ -69,21 +69,8 @@ impl<'a> RtlSdr<'a> {
                             },
                             Err(_) => false
                         };
-                        if !found {
-                            let d = fc0013::FC0013::new();
-                            let _found = match usb.i2c_read_reg(d.device.i2c_addr, d.device.check_addr) {
-                                Ok(reg) => {
-                                    if reg == d.device.check_val {
-                                        println!("Found {} tuner\n", d.device.name);
-                                        true
-                                    }
-                                    else {
-                                        false
-                                    }
-                                },
-                                Err(_) => false
-                            };
-                        }
+
+                        d.init(&usb);
 
                         usb.deinit_baseband();
                     }
