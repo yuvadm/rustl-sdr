@@ -14,7 +14,7 @@ Install the crate in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rustl-sdr = "0.1"
+rustl-sdr = "0.2"
 ```
 
 Use in your code:

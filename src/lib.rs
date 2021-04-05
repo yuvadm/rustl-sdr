@@ -28,7 +28,7 @@ impl<'a> RtlSdr<'a> {
     }
 
     pub fn open(&mut self) {
-        for mut dev in self.ctx.devices().unwrap().iter() {
+        for dev in self.ctx.devices().unwrap().iter() {
             let desc = dev.device_descriptor().unwrap();
             let vid = desc.vendor_id();
             let pid = desc.product_id();
