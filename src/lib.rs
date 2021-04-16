@@ -1,9 +1,9 @@
 extern crate rusb;
 
-mod devices;
+mod tuners;
 mod usb;
 
-use devices::*;
+use tuners::*;
 use usb::RtlSdrDeviceHandle;
 
 const INTERFACE_ID: u8 = 0;
@@ -51,28 +51,24 @@ impl RtlSdr {
                     handle.init_baseband();
                     handle.set_i2c_repeater(true);
 
-                    let tuner: Box<dyn Tuner> = match self.search_tuner(&handle) {
-                        Some(tuner) => match tuner {
-                            r820t::TUNER_ID => Box::new(r820t::R820T::new(&handle)),
-                            fc0013::TUNER_ID => Box::new(fc0013::FC0013::new(&handle)),
-                            _ => {
+                    {
+                        let tuner: Box<dyn Tuner> = match self.search_tuner(&handle) {
+                            Some(tuner) => match tuner {
+                                r820t::TUNER_ID => Box::new(r820t::R820T::new(&handle)),
+                                fc0013::TUNER_ID => Box::new(fc0013::FC0013::new(&handle)),
+                                _ => {
+                                    println!("No valid tuner found");
+                                    return;
+                                }
+                            },
+                            None => {
                                 println!("No valid tuner found");
                                 return;
                             }
-                        },
-                        None => {
-                            println!("No valid tuner found");
-                            return;
-                        }
-                    };
+                        };
 
-                    tuner.init();
-
-                    // handle.deinit_baseband();
-
-                    // if kernel_driver_attached {
-                    //     handle.attach_kernel_driver();
-                    // }
+                        tuner.init();
+                    }
                 } else {
                     println!("No match for vid {} and pid {}", vid, pid);
                 }

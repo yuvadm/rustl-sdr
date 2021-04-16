@@ -44,7 +44,22 @@ Since there isn't (?) any good USB device mocking setup, for tests to pass an RT
 
 ## Design
 
-Similarly to the original rtl-sdr driver, we use libusb via the `rusb` bindings as the main interface to issue commands to the rtl-sdr USB dongle.
+### Overview
+
+RusTL-SDR is very similar to the original rtl-sdr driver. It uses libusb, via the [rusb](https://github.com/a1ien/rusb/) bindings, as the main interface to issue commands to the rtl-sdr USB dongle.
+
+### Lifecycle
+
+Devices generally go through the following lifecycle:
+
+1. Get a libusb context/handle, and find a compatible and supported RTL-SDR device
+2. Initialize the device baseband
+3. Probe the device for known tuners via the I2C interface
+4. Run any special initialization required for the detected tuner
+5. Interact with the device, usually this is where samples are read
+6. Deinitialize the tuner
+7. Deinitialize the baseband
+8. Close the USB handle
 
 ## License
 
