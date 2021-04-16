@@ -1,14 +1,14 @@
-use super::{Device, DeviceInfo};
+use super::{Tuner, TunerInfo};
 use usb::RtlSdrDeviceHandle;
 
 const R82XX_IF_FREQ: u32 = 3570000;
 
 pub struct R820T<'a> {
-    pub device: DeviceInfo,
+    pub device: TunerInfo,
     pub handle: &'a RtlSdrDeviceHandle,
 }
 
-pub const DEVICE_INFO: DeviceInfo = DeviceInfo {
+pub const TUNER_INFO: TunerInfo = TunerInfo {
     id: "r820t",
     name: "Rafael Micro R820T",
     i2c_addr: 0x34,
@@ -19,7 +19,7 @@ pub const DEVICE_INFO: DeviceInfo = DeviceInfo {
 impl<'a> R820T<'a> {
     pub fn new(handle: &'a RtlSdrDeviceHandle) -> R820T<'a> {
         R820T {
-            device: DEVICE_INFO,
+            device: TUNER_INFO,
             handle: handle,
         }
     }
@@ -29,7 +29,7 @@ impl<'a> Drop for R820T<'a> {
     fn drop(&mut self) {}
 }
 
-impl<'a> Device for R820T<'a> {
+impl<'a> Tuner for R820T<'a> {
     fn init(&self) {
         // disable Zero-IF mode
         self.handle.demod_write_reg(1, 0xb1, 0x1a, 1);

@@ -1,12 +1,12 @@
-use super::{Device, DeviceInfo};
+use super::{Tuner, TunerInfo};
 
 #[allow(dead_code)]
 pub struct FC0013 {
-    pub device: DeviceInfo,
+    pub device: TunerInfo,
 }
 
 #[allow(dead_code)]
-pub const DEVICE_INFO: DeviceInfo = DeviceInfo {
+pub const TUNER_INFO: TunerInfo = TunerInfo {
     id: "fc0013",
     name: "Fitipower FC0013",
     i2c_addr: 0xc6,
@@ -17,13 +17,11 @@ pub const DEVICE_INFO: DeviceInfo = DeviceInfo {
 #[allow(dead_code)]
 impl FC0013 {
     pub fn new() -> FC0013 {
-        FC0013 {
-            device: DEVICE_INFO,
-        }
+        FC0013 { device: TUNER_INFO }
     }
 }
 
-impl Device for FC0013 {
+impl Tuner for FC0013 {
     fn init(&self) {
         println!("Init {}", self.device.name);
     }
