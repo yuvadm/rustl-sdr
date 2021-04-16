@@ -4,4 +4,4 @@ version = "0.2.0"
 authors = ["Yuval Adam <_@yuv.al>"]
 
 [dependencies]
-libusb = "0.3"
+rusb = "0.8"
