@@ -47,25 +47,27 @@ impl RtlSdr {
                     handle.init_baseband();
                     handle.set_i2c_repeater(true);
 
-                    let d = r820t::R820T::new(handle);
-                    // let _found = match handle.i2c_read_reg(d.device.i2c_addr, d.device.check_addr) {
-                    //     Ok(reg) => {
-                    //         if reg == d.device.check_val {
-                    //             println!("Found {} tuner\n", d.device.name);
-                    //             true
-                    //         } else {
-                    //             false
-                    //         }
-                    //     }
-                    //     Err(_) => false,
-                    // };
+                    {
+                        let d = r820t::R820T::new(&handle);
+                        // let _found = match handle.i2c_read_reg(d.device.i2c_addr, d.device.check_addr) {
+                        //     Ok(reg) => {
+                        //         if reg == d.device.check_val {
+                        //             println!("Found {} tuner\n", d.device.name);
+                        //             true
+                        //         } else {
+                        //             false
+                        //         }
+                        //     }
+                        //     Err(_) => false,
+                        // };
 
-                    d.init();
+                        d.init();
+                    }
 
-                    // handle.deinit_baseband();
+                    handle.deinit_baseband();
 
                     if kernel_driver_attached {
-                        //     handle.attach_kernel_driver();
+                        handle.attach_kernel_driver();
                     }
                 }
             }
