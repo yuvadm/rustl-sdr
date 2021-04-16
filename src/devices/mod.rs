@@ -1,7 +1,7 @@
 pub mod fc0013;
 pub mod r820t;
 
-pub struct DeviceInfo {
+pub struct TunerInfo {
     pub id: &'static str,
     pub name: &'static str,
     pub i2c_addr: u8,
@@ -9,7 +9,7 @@ pub struct DeviceInfo {
     pub check_val: u8,
 }
 
-pub trait Device {
+pub trait Tuner {
     fn init(&self);
     fn exit(&self);
     fn set_freq(&self, freq: u32);
