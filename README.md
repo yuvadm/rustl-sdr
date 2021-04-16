@@ -42,6 +42,10 @@ $ cargo test -- --nocapture
 
 Since there isn't (?) any good USB device mocking setup, for tests to pass an RTL-SDR device must be connected.
 
+## Design
+
+Similarly to the original rtl-sdr driver, we use libusb via the `rusb` bindings as the main interface to issue commands to the rtl-sdr USB dongle.
+
 ## License
 
 [GPLv3](LICENSE)

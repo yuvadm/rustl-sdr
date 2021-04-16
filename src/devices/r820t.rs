@@ -3,9 +3,9 @@ use usb::RtlSdrDeviceHandle;
 
 const R82XX_IF_FREQ: u32 = 3570000;
 
-pub struct R820T {
+pub struct R820T<'a> {
     pub device: DeviceInfo,
-    pub handle: RtlSdrDeviceHandle,
+    pub handle: &'a RtlSdrDeviceHandle,
 }
 
 pub const DEVICE_INFO: DeviceInfo = DeviceInfo {
@@ -16,8 +16,8 @@ pub const DEVICE_INFO: DeviceInfo = DeviceInfo {
     check_val: 0x69,
 };
 
-impl R820T {
-    pub fn new(handle: RtlSdrDeviceHandle) -> R820T {
+impl<'a> R820T<'a> {
+    pub fn new(handle: &'a RtlSdrDeviceHandle) -> R820T<'a> {
         R820T {
             device: DEVICE_INFO,
             handle: handle,
@@ -25,7 +25,11 @@ impl R820T {
     }
 }
 
-impl Device for R820T {
+impl<'a> Drop for R820T<'a> {
+    fn drop(&mut self) {}
+}
+
+impl<'a> Device for R820T<'a> {
     fn init(&self) {
         // disable Zero-IF mode
         self.handle.demod_write_reg(1, 0xb1, 0x1a, 1);
