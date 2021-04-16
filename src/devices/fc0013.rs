@@ -1,27 +1,31 @@
 use super::{Tuner, TunerInfo};
+use usb::RtlSdrDeviceHandle;
 
-#[allow(dead_code)]
-pub struct FC0013 {
+pub struct FC0013<'a> {
     pub device: TunerInfo,
+    pub handle: &'a RtlSdrDeviceHandle,
 }
 
-#[allow(dead_code)]
+pub const TUNER_ID: &str = "fc0013";
+
 pub const TUNER_INFO: TunerInfo = TunerInfo {
-    id: "fc0013",
+    id: TUNER_ID,
     name: "Fitipower FC0013",
     i2c_addr: 0xc6,
     check_addr: 0x00,
     check_val: 0xa3,
 };
 
-#[allow(dead_code)]
-impl FC0013 {
-    pub fn new() -> FC0013 {
-        FC0013 { device: TUNER_INFO }
+impl<'a> FC0013<'a> {
+    pub fn new(handle: &'a RtlSdrDeviceHandle) -> FC0013<'a> {
+        FC0013 {
+            device: TUNER_INFO,
+            handle: handle,
+        }
     }
 }
 
-impl Tuner for FC0013 {
+impl<'a> Tuner for FC0013<'a> {
     fn init(&self) {
         println!("Init {}", self.device.name);
     }

@@ -8,8 +8,10 @@ pub struct R820T<'a> {
     pub handle: &'a RtlSdrDeviceHandle,
 }
 
+pub const TUNER_ID: &str = "r820t";
+
 pub const TUNER_INFO: TunerInfo = TunerInfo {
-    id: "r820t",
+    id: TUNER_ID,
     name: "Rafael Micro R820T",
     i2c_addr: 0x34,
     check_addr: 0x00,

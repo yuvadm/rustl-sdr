@@ -51,9 +51,10 @@ impl RtlSdr {
                     handle.init_baseband();
                     handle.set_i2c_repeater(true);
 
-                    let tuner = match self.search_tuner(&handle) {
+                    let tuner: Box<dyn Tuner> = match self.search_tuner(&handle) {
                         Some(tuner) => match tuner {
-                            "r820t" => Some(r820t::R820T::new(&handle)),
+                            r820t::TUNER_ID => Box::new(r820t::R820T::new(&handle)),
+                            fc0013::TUNER_ID => Box::new(fc0013::FC0013::new(&handle)),
                             _ => {
                                 println!("No valid tuner found");
                                 return;
@@ -65,7 +66,6 @@ impl RtlSdr {
                         }
                     };
 
-                    let tuner = tuner.unwrap();
                     tuner.init();
 
                     // handle.deinit_baseband();
