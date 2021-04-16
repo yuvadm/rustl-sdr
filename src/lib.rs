@@ -13,6 +13,8 @@ const KNOWN_DEVICES: [(u16, u16, &str); 2] = [
     (0x0bda, 0x2838, "Generic RTL2832U OEM"),
 ];
 
+const KNOWN_TUNERS: [DeviceInfo; 2] = [r820t::DEVICE_INFO, fc0013::DEVICE_INFO];
+
 pub struct RtlSdr {
     // ctx: rusb::Context,
     // device: UsbDevice,
@@ -27,7 +29,8 @@ impl RtlSdr {
         }
     }
 
-    pub fn open(&mut self) {
+    pub fn open(&mut self) -> bool {
+        let mut found = false;
         for dev in rusb::devices().unwrap().iter() {
             let desc = dev.device_descriptor().unwrap();
             let vid = desc.vendor_id();
@@ -35,9 +38,10 @@ impl RtlSdr {
 
             for kd in KNOWN_DEVICES.iter() {
                 if kd.0 == vid && kd.1 == pid {
+                    println!("Found USB device with vid {} and pid {}", vid, pid);
                     let usb_handle = dev.open().unwrap();
                     let mut handle = RtlSdrDeviceHandle::new(usb_handle, self.iface_id);
-                    let kernel_driver_attached = handle.detach_kernel_driver();
+                    // let kernel_driver_attached = handle.detach_kernel_driver();
 
                     let _iface = handle.claim_interface();
 
@@ -47,31 +51,40 @@ impl RtlSdr {
                     handle.init_baseband();
                     handle.set_i2c_repeater(true);
 
-                    {
-                        let d = r820t::R820T::new(&handle);
-                        // let _found = match handle.i2c_read_reg(d.device.i2c_addr, d.device.check_addr) {
-                        //     Ok(reg) => {
-                        //         if reg == d.device.check_val {
-                        //             println!("Found {} tuner\n", d.device.name);
-                        //             true
-                        //         } else {
-                        //             false
-                        //         }
-                        //     }
-                        //     Err(_) => false,
-                        // };
-
-                        d.init();
+                    for tuner_info in KNOWN_TUNERS.iter() {
+                        match handle.i2c_read_reg(tuner_info.i2c_addr, tuner_info.check_addr) {
+                            Ok(val) => {
+                                if val == tuner_info.check_val {
+                                    println!("Found {} tuner\n", tuner_info.name);
+                                    found = true;
+                                    break;
+                                } else {
+                                    println!(
+                                        "Mismatch in  {} tuner expected {} found {}\n",
+                                        tuner_info.name, tuner_info.check_val, val
+                                    );
+                                }
+                            }
+                            Err(_) => {}
+                        };
                     }
 
-                    handle.deinit_baseband();
+                    // {
+                    //     let d = r820t::R820T::new(&handle);
+                    //     d.init();
+                    // }
 
-                    if kernel_driver_attached {
-                        handle.attach_kernel_driver();
-                    }
+                    // handle.deinit_baseband();
+
+                    // if kernel_driver_attached {
+                    //     handle.attach_kernel_driver();
+                    // }
+                } else {
+                    println!("No match for vid {} and pid {}", vid, pid);
                 }
             }
         }
+        found
     }
 }
 
@@ -82,7 +95,7 @@ mod tests {
     #[test]
     fn test_init() {
         let mut rtlsdr = RtlSdr::new();
-        let x = rtlsdr.open();
-        assert_eq!(x, 1);
+        let found = rtlsdr.open();
+        assert_eq!(found, true);
     }
 }
