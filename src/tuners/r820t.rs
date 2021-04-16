@@ -28,7 +28,9 @@ impl<'a> R820T<'a> {
 }
 
 impl<'a> Drop for R820T<'a> {
-    fn drop(&mut self) {}
+    fn drop(&mut self) {
+        self.exit();
+    }
 }
 
 impl<'a> Tuner for R820T<'a> {
@@ -47,9 +49,7 @@ impl<'a> Tuner for R820T<'a> {
         self.handle.demod_write_reg(1, 0x15, 0x01, 1);
     }
 
-    fn exit(&self) {
-        unimplemented!()
-    }
+    fn exit(&self) {}
 
     fn set_freq(&self, _freq: u32) {
         unimplemented!()

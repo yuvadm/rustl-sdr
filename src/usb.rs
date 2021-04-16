@@ -36,27 +36,37 @@ const CTRL_TIMEOUT: Duration = Duration::from_millis(300);
 pub struct RtlSdrDeviceHandle {
     handle: DeviceHandle<GlobalContext>,
     iface_id: u8,
+    kernel_driver_active: bool,
 }
 
+/// A wrapper around libusb's DeviceHandle that implements
+/// various rtl-sdr specific methods
 impl RtlSdrDeviceHandle {
-    /// A wrapper around libusb's DeviceHandle that implements
-    /// various rtl-sdr specific methods
     pub fn new(handle: DeviceHandle<GlobalContext>, iface_id: u8) -> RtlSdrDeviceHandle {
-        RtlSdrDeviceHandle { handle, iface_id }
+        let mut handle = RtlSdrDeviceHandle {
+            handle,
+            iface_id,
+            kernel_driver_active: false,
+        };
+        handle.detach_kernel_driver();
+        handle
     }
 
-    pub fn detach_kernel_driver(&mut self) -> bool {
-        match self.handle.kernel_driver_active(self.iface_id) {
+    pub fn detach_kernel_driver(&mut self) {
+        let active = match self.handle.kernel_driver_active(self.iface_id) {
             Ok(true) => {
                 self.handle.detach_kernel_driver(self.iface_id).ok();
                 true
             }
             _ => false,
-        }
+        };
+        self.kernel_driver_active = active;
     }
 
     pub fn attach_kernel_driver(&mut self) {
-        self.handle.attach_kernel_driver(self.iface_id).ok();
+        if self.kernel_driver_active {
+            self.handle.attach_kernel_driver(self.iface_id).ok();
+        }
     }
 
     pub fn claim_interface(&mut self) {
@@ -237,9 +247,14 @@ impl RtlSdrDeviceHandle {
     }
 
     pub fn deinit_baseband(&self) {
-        // deinit tuner?
-
         // power off demod and ADCs
         self.write_reg(BLOCK_SYSB, ADDR_SYS_DEMOD_CTL, 0x20, 1);
+    }
+}
+
+impl Drop for RtlSdrDeviceHandle {
+    fn drop(&mut self) {
+        self.deinit_baseband();
+        self.attach_kernel_driver();
     }
 }
