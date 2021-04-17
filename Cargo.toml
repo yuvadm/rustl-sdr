@@ -15,3 +15,7 @@ path = "src/lib.rs"
 [[bin]]
 name = "rustl_fm"
 path = "src/utils/rustl_fm.rs"
+
+[[bin]]
+name = "rustl_test"
+path = "src/utils/rustl_test.rs"
