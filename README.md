@@ -29,6 +29,12 @@ fn foo() {
 }
 ```
 
+Or run one of the example binaries:
+
+```bash
+$ RUST_LOG=info cargo run --bin rustl_fm
+```
+
 ## Dev
 
 The usual:
