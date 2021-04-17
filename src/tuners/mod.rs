@@ -1,3 +1,5 @@
+use super::RtlSdrDeviceHandle;
+
 pub mod fc0013;
 pub mod r820t;
 
@@ -7,10 +9,11 @@ pub struct TunerInfo {
     pub i2c_addr: u8,
     pub check_addr: u8,
     pub check_val: u8,
+    // pub gains: Vec<i8>,
 }
 
 pub trait Tuner {
-    fn init(&self);
+    fn init(&self, handle: &RtlSdrDeviceHandle);
     fn exit(&self);
     fn set_freq(&self, freq: u32);
     fn set_bw(&self, bw: u32);

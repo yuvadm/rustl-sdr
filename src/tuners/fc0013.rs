@@ -1,9 +1,9 @@
 use super::{Tuner, TunerInfo};
 use usb::RtlSdrDeviceHandle;
 
-pub struct FC0013<'a> {
+pub struct FC0013 {
     pub device: TunerInfo,
-    pub handle: &'a RtlSdrDeviceHandle,
+    // pub handle: &'a RtlSdrDeviceHandle,
 }
 
 pub const TUNER_ID: &str = "fc0013";
@@ -14,22 +14,23 @@ pub const TUNER_INFO: TunerInfo = TunerInfo {
     i2c_addr: 0xc6,
     check_addr: 0x00,
     check_val: 0xa3,
+    // gains: vec![
+    //     -99, -73, -65, -63, -60, -58, -54, 58, 61, 63, 65, 67, 68, 70, 71, 179, 181, 182, 184, 186,
+    //     188, 191, 197,
+    // ],
 };
 
-impl<'a> FC0013<'a> {
-    pub fn new(handle: &'a RtlSdrDeviceHandle) -> FC0013<'a> {
-        let tuner = FC0013 {
-            device: TUNER_INFO,
-            handle: handle,
-        };
-        tuner.init();
+impl FC0013 {
+    pub fn new(handle: &RtlSdrDeviceHandle) -> FC0013 {
+        let tuner = FC0013 { device: TUNER_INFO };
+        tuner.init(handle);
         tuner
     }
 }
 
-impl<'a> Tuner for FC0013<'a> {
-    fn init(&self) {
-        println!("Init {}", self.device.name);
+impl Tuner for FC0013 {
+    fn init(&self, _handle: &RtlSdrDeviceHandle) {
+        unimplemented!()
     }
 
     fn exit(&self) {

@@ -3,9 +3,9 @@ use usb::RtlSdrDeviceHandle;
 
 const R82XX_IF_FREQ: u32 = 3570000;
 
-pub struct R820T<'a> {
+pub struct R820T {
     pub device: TunerInfo,
-    pub handle: &'a RtlSdrDeviceHandle,
+    // pub handle: &'a RtlSdrDeviceHandle,
 }
 
 pub const TUNER_ID: &str = "r820t";
@@ -16,39 +16,40 @@ pub const TUNER_INFO: TunerInfo = TunerInfo {
     i2c_addr: 0x34,
     check_addr: 0x00,
     check_val: 0x69,
+    // gains: vec![
+    //     0, 9, 14, 27, 37, 77, 87, 125, 144, 157, 166, 197, 207, 229, 254, 280, 297, 328, 338, 364,
+    //     372, 386, 402, 421, 434, 439, 445, 480, 496,
+    // ],
 };
 
-impl<'a> R820T<'a> {
-    pub fn new(handle: &'a RtlSdrDeviceHandle) -> R820T<'a> {
-        let tuner = R820T {
-            device: TUNER_INFO,
-            handle: handle,
-        };
-        tuner.init();
+impl R820T {
+    pub fn new(handle: &RtlSdrDeviceHandle) -> R820T {
+        let tuner = R820T { device: TUNER_INFO };
+        tuner.init(handle);
         tuner
     }
 }
 
-impl<'a> Drop for R820T<'a> {
+impl Drop for R820T {
     fn drop(&mut self) {
         self.exit();
     }
 }
 
-impl<'a> Tuner for R820T<'a> {
-    fn init(&self) {
+impl Tuner for R820T {
+    fn init(&self, handle: &RtlSdrDeviceHandle) {
         // disable Zero-IF mode
-        self.handle.demod_write_reg(1, 0xb1, 0x1a, 1);
+        handle.demod_write_reg(1, 0xb1, 0x1a, 1);
 
         // only enable In-phase ADC input
-        self.handle.demod_write_reg(0, 0x08, 0x4d, 1);
+        handle.demod_write_reg(0, 0x08, 0x4d, 1);
 
         // the R82XX use 3.57 MHz IF for the DVB-T 6 MHz mode, and
         // 4.57 MHz for the 8 MHz mode
-        self.handle.set_if_freq(R82XX_IF_FREQ);
+        handle.set_if_freq(R82XX_IF_FREQ);
 
         // enable spectrum inversion
-        self.handle.demod_write_reg(1, 0x15, 0x01, 1);
+        handle.demod_write_reg(1, 0x15, 0x01, 1);
     }
 
     fn exit(&self) {}

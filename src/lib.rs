@@ -22,6 +22,7 @@ pub struct RtlSdr {
     // ctx: rusb::Context,
     // device: UsbDevice,
     iface_id: u8,
+    tuner: Option<Box<dyn Tuner>>,
 }
 
 impl RtlSdr {
@@ -30,6 +31,7 @@ impl RtlSdr {
         RtlSdr {
             // ctx: rusb::Context::new().unwrap(),
             iface_id: INTERFACE_ID,
+            tuner: None,
         }
     }
 
@@ -69,16 +71,16 @@ impl RtlSdr {
                             }
                         };
 
-                        let tuner: Box<dyn Tuner> = match tuner_id {
-                            r820t::TUNER_ID => Box::new(r820t::R820T::new(&handle)),
-                            fc0013::TUNER_ID => Box::new(fc0013::FC0013::new(&handle)),
+                        self.tuner = match tuner_id {
+                            r820t::TUNER_ID => Some(Box::new(r820t::R820T::new(&handle))),
+                            fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&handle))),
                             _ => {
                                 error!("Could not find any valid tuner, aborting.");
                                 return;
                             }
                         };
 
-                        info!("Found tuner {}", tuner.display());
+                        // info!("Found tuner {}", self.tuner.unwrap().display());
                     }
                 }
             }

@@ -1,5 +1,8 @@
+extern crate log;
+extern crate pretty_env_logger;
 extern crate rusb;
 
+use log::{error, info};
 use rusb::{DeviceHandle, Direction, GlobalContext, Recipient, RequestType};
 use std::time::Duration;
 
@@ -43,6 +46,7 @@ pub struct RtlSdrDeviceHandle {
 /// various rtl-sdr specific methods
 impl RtlSdrDeviceHandle {
     pub fn new(handle: DeviceHandle<GlobalContext>, iface_id: u8) -> RtlSdrDeviceHandle {
+        pretty_env_logger::init();
         let mut handle = RtlSdrDeviceHandle {
             handle,
             iface_id,
@@ -106,7 +110,7 @@ impl RtlSdrDeviceHandle {
             .handle
             .write_control(type_vendor_in, 0, addr, index, &data, CTRL_TIMEOUT);
         let reg: u16 = ((data[1] as u16) << 8) | (data[0] as u16);
-        return reg;
+        reg
     }
 
     pub fn demod_write_reg(&self, page: u8, addr: u16, val: u16, len: u8) -> u16 {
@@ -244,6 +248,34 @@ impl RtlSdrDeviceHandle {
         self.demod_write_reg(1, 0x1a, tmp, 1);
         let tmp = if_freq as u16 & 0xff;
         self.demod_write_reg(1, 0x1b, tmp, 1);
+    }
+
+    pub fn set_sample_rate(&self, samp_rate: u32) {
+        let tmp: u16;
+        let real_rsamp_ratio: u32;
+
+        // check if the rate is supported by the resampler
+        if (samp_rate <= 225000)
+            || (samp_rate > 3200000)
+            || ((samp_rate > 300000) && (samp_rate <= 900000))
+        {
+            error!("Invalid sample rate: {} Hz", samp_rate);
+        }
+
+        let mut rsamp_ratio: u32 = (DEF_RTL_XTAL_FREQ * (2 ^ 22)) / samp_rate;
+        rsamp_ratio &= 0x0ffffffc;
+
+        real_rsamp_ratio = rsamp_ratio | ((rsamp_ratio & 0x08000000) << 1);
+        let real_rate: f64 = ((DEF_RTL_XTAL_FREQ * (2 ^ 22)) / real_rsamp_ratio).into();
+        info!("Exact sample rate is: {} Hz", real_rate);
+
+        self.set_i2c_repeater(true);
+        self.set_i2c_repeater(false);
+    }
+
+    pub fn reset_buffer(&self) {
+        self.write_reg(BLOCK_USBB, ADDR_USB_EPA_CTL, 0x1002, 2);
+        self.write_reg(BLOCK_USBB, ADDR_USB_EPA_CTL, 0x0000, 2);
     }
 
     pub fn deinit_baseband(&self) {
