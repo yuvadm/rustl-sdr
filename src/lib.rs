@@ -5,7 +5,7 @@ extern crate rusb;
 mod tuners;
 mod usb;
 
-use log::{error, info, trace};
+use log::{error, info, trace, warn};
 use tuners::*;
 use usb::RtlSdrDeviceHandle;
 
@@ -44,7 +44,7 @@ impl RtlSdr {
 
             for kd in KNOWN_DEVICES.iter() {
                 if kd.0 == vid && kd.1 == pid {
-                    info!("Found {} {{{:04x}:{:04x}}}", kd.2, vid, pid);
+                    info!("Found device {} {{{:04x}:{:04x}}}", kd.2, vid, pid);
                     let usb_handle = dev.open().unwrap();
                     let mut handle = RtlSdrDeviceHandle::new(usb_handle, self.iface_id);
                     // let kernel_driver_attached = handle.detach_kernel_driver();
@@ -58,40 +58,59 @@ impl RtlSdr {
                     handle.set_i2c_repeater(true);
 
                     {
-                        let tuner: Box<dyn Tuner> = match self.search_tuner(&handle) {
-                            Some(tuner) => match tuner {
-                                r820t::TUNER_ID => Box::new(r820t::R820T::new(&handle)),
-                                fc0013::TUNER_ID => Box::new(fc0013::FC0013::new(&handle)),
-                                _ => {
-                                    error!("Could not find any valid tuner, aborting.");
-                                    return;
-                                }
-                            },
+                        let tuner_id = match self.search_tuner(&handle) {
+                            Some(tid) => {
+                                info!("Got tuner ID {}", tid);
+                                tid
+                            }
                             None => {
+                                error!("Could not find a value tuner, aborting.");
+                                return;
+                            }
+                        };
+
+                        let tuner: Box<dyn Tuner> = match tuner_id {
+                            r820t::TUNER_ID => Box::new(r820t::R820T::new(&handle)),
+                            fc0013::TUNER_ID => Box::new(fc0013::FC0013::new(&handle)),
+                            _ => {
                                 error!("Could not find any valid tuner, aborting.");
                                 return;
                             }
                         };
+
+                        info!("Found tuner {}", tuner.display());
 
                         tuner.init();
                     }
                 }
             }
         }
-        error!("Could not find any RTL-SDR device, aborting.")
     }
 
     /// Probe all known tuners at their I2C addresses
     /// and search for expected return values
     fn search_tuner(&mut self, handle: &RtlSdrDeviceHandle) -> Option<&str> {
         for tuner_info in KNOWN_TUNERS.iter() {
-            match handle.i2c_read_reg(tuner_info.i2c_addr, tuner_info.check_addr) {
+            let regval = handle.i2c_read_reg(tuner_info.i2c_addr, tuner_info.check_addr);
+            trace!(
+                "Probing I2C address {:#02x} checking address {:#02x}",
+                tuner_info.i2c_addr,
+                tuner_info.check_addr,
+            );
+            match regval {
                 Ok(val) => {
+                    trace!(
+                        "Expecting value {:#02x}, got value {:#02x}",
+                        tuner_info.check_val,
+                        val
+                    );
                     if val == tuner_info.check_val {
-                        return Some(tuner_info.name);
+                        return Some(tuner_info.id);
                     }
                 }
-                Err(_) => {}
+                Err(_) => {
+                    warn!("Reading failed, continuing");
+                }
             };
         }
         None

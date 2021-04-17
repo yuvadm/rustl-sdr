@@ -53,4 +53,8 @@ impl<'a> Tuner for FC0013<'a> {
     fn set_gain_mode(&self, _mode: bool) {
         unimplemented!()
     }
+
+    fn display(&self) -> &str {
+        self.device.name
+    }
 }

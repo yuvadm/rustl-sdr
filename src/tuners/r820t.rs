@@ -70,4 +70,8 @@ impl<'a> Tuner for R820T<'a> {
     fn set_gain_mode(&self, _mode: bool) {
         unimplemented!()
     }
+
+    fn display(&self) -> &str {
+        self.device.name
+    }
 }

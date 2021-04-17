@@ -17,4 +17,5 @@ pub trait Tuner {
     fn set_gain(&self, gain: u32);
     fn set_if_gain(&self, if_gain: u32);
     fn set_gain_mode(&self, mode: bool);
+    fn display(&self) -> &str;
 }
