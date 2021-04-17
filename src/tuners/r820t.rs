@@ -20,10 +20,12 @@ pub const TUNER_INFO: TunerInfo = TunerInfo {
 
 impl<'a> R820T<'a> {
     pub fn new(handle: &'a RtlSdrDeviceHandle) -> R820T<'a> {
-        R820T {
+        let tuner = R820T {
             device: TUNER_INFO,
             handle: handle,
-        }
+        };
+        tuner.init();
+        tuner
     }
 }
 

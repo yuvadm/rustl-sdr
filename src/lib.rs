@@ -79,8 +79,6 @@ impl RtlSdr {
                         };
 
                         info!("Found tuner {}", tuner.display());
-
-                        tuner.init();
                     }
                 }
             }
