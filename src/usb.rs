@@ -251,7 +251,7 @@ impl RtlSdrDeviceHandle {
     }
 
     pub fn set_sample_rate(&self, samp_rate: u32) {
-        let tmp: u16;
+        let _tmp: u16;
         let real_rsamp_ratio: u32;
 
         // check if the rate is supported by the resampler

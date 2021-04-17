@@ -58,7 +58,7 @@ impl Tuner for R820T {
         unimplemented!()
     }
 
-    fn set_bw(&self, _bw: u32) {
+    fn set_bw(&self, _bw: u32, _handle: &RtlSdrDeviceHandle) {
         unimplemented!()
     }
 

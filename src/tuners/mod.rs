@@ -16,7 +16,7 @@ pub trait Tuner {
     fn init(&self, handle: &RtlSdrDeviceHandle);
     fn exit(&self);
     fn set_freq(&self, freq: u32);
-    fn set_bw(&self, bw: u32);
+    fn set_bw(&self, bw: u32, handle: &RtlSdrDeviceHandle);
     fn set_gain(&self, gain: u32);
     fn set_if_gain(&self, if_gain: u32);
     fn set_gain_mode(&self, mode: bool);

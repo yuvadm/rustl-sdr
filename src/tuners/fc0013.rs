@@ -41,7 +41,7 @@ impl Tuner for FC0013 {
         unimplemented!()
     }
 
-    fn set_bw(&self, _bw: u32) {
+    fn set_bw(&self, _bw: u32, _handle: &RtlSdrDeviceHandle) {
         unimplemented!()
     }
 
