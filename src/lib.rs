@@ -1,8 +1,11 @@
+extern crate log;
+extern crate pretty_env_logger;
 extern crate rusb;
 
 mod tuners;
 mod usb;
 
+use log::{error, info, trace};
 use tuners::*;
 use usb::RtlSdrDeviceHandle;
 
@@ -23,6 +26,7 @@ pub struct RtlSdr {
 
 impl RtlSdr {
     pub fn new() -> RtlSdr {
+        pretty_env_logger::init();
         RtlSdr {
             // ctx: rusb::Context::new().unwrap(),
             iface_id: INTERFACE_ID,
@@ -36,9 +40,11 @@ impl RtlSdr {
             let vid = desc.vendor_id();
             let pid = desc.product_id();
 
+            trace!("Found USB device with vid {} and pid {}", vid, pid);
+
             for kd in KNOWN_DEVICES.iter() {
                 if kd.0 == vid && kd.1 == pid {
-                    println!("Found USB device with vid {} and pid {}", vid, pid);
+                    info!("Found {} {{{:04x}:{:04x}}}", kd.2, vid, pid);
                     let usb_handle = dev.open().unwrap();
                     let mut handle = RtlSdrDeviceHandle::new(usb_handle, self.iface_id);
                     // let kernel_driver_attached = handle.detach_kernel_driver();
@@ -57,23 +63,22 @@ impl RtlSdr {
                                 r820t::TUNER_ID => Box::new(r820t::R820T::new(&handle)),
                                 fc0013::TUNER_ID => Box::new(fc0013::FC0013::new(&handle)),
                                 _ => {
-                                    println!("No valid tuner found");
+                                    error!("Could not find any valid tuner, aborting.");
                                     return;
                                 }
                             },
                             None => {
-                                println!("No valid tuner found");
+                                error!("Could not find any valid tuner, aborting.");
                                 return;
                             }
                         };
 
                         tuner.init();
                     }
-                } else {
-                    println!("No match for vid {} and pid {}", vid, pid);
                 }
             }
         }
+        error!("Could not find any RTL-SDR device, aborting.")
     }
 
     /// Probe all known tuners at their I2C addresses

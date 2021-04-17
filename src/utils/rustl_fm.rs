@@ -1,3 +1,5 @@
 pub fn main() {
-    println!("Usage: rustl_fm")
+    println!("Starting rustl_fm");
+    let mut r = rustl_sdr::RtlSdr::new();
+    r.open();
 }

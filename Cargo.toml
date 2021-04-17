@@ -4,6 +4,8 @@ version = "0.2.0"
 authors = ["Yuval Adam <_@yuv.al>"]
 
 [dependencies]
+log = "0.4"
+pretty_env_logger = "0.4"
 rusb = "0.8"
 
 [lib]
