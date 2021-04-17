@@ -5,3 +5,11 @@ authors = ["Yuval Adam <_@yuv.al>"]
 
 [dependencies]
 rusb = "0.8"
+
+[lib]
+name = "rustl_sdr"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rustl_fm"
+path = "src/rustl_fm.rs"
