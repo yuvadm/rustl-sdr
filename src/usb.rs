@@ -251,7 +251,6 @@ impl RtlSdrDeviceHandle {
     }
 
     pub fn set_sample_rate(&self, samp_rate: u32) {
-        let _tmp: u16;
         let real_rsamp_ratio: u32;
 
         // check if the rate is supported by the resampler
@@ -270,8 +269,22 @@ impl RtlSdrDeviceHandle {
         info!("Exact sample rate is: {} Hz", real_rate);
 
         self.set_i2c_repeater(true);
+        self.tuner.set_bw(self.handle);
         self.set_i2c_repeater(false);
+
+        let mut tmp: u16 = rsamp_ratio >> 16;
+        self.handle.demod_write_reg(1, 0x9f, tmp, 2);
+        tmp = rsamp_ratio & 0xffff;
+        self.handle.demod_write_reg(1, 0xa1, tmp, 2);
+        // self.set_sample_freq_corr();
+
+        // reset demod (bit 3, soft_rst)
+        self.handle.demod_write_reg(1, 0x01, 0x14, 1);
+        self.handle.demod_write_reg(1, 0x01, 0x10, 1);
+        
+        // self.set_offset_tuning();
     }
+
 
     pub fn reset_buffer(&self) {
         self.write_reg(BLOCK_USBB, ADDR_USB_EPA_CTL, 0x1002, 2);

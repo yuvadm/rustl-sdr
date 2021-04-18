@@ -115,6 +115,10 @@ impl RtlSdr {
         }
         None
     }
+
+    pub fn set_sample_rate(&self, samp_rate: u32) {
+        self.handle.set_sample_rate(samp_rate);
+    }
 }
 
 #[cfg(test)]
