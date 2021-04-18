@@ -56,44 +56,41 @@ impl RtlSdrDeviceHandle {
             kernel_driver_active: false,
         };
 
-        handle.tuner = Self::open_tuner(&handle);
-
         handle.detach_kernel_driver();
         handle
     }
 
-    fn open_tuner(handle: &RtlSdrDeviceHandle) -> Option<Box<dyn Tuner>> {
-        let tuner_id = match Self::search_tuner(&handle) {
+    pub fn init_tuner(&mut self) {
+        let tuner_id: &str = match self.search_tuner() {
             Some(tid) => {
-                info!("Got tuner ID {}", tid);
+                trace!("Found tuner ID {}", tid);
                 tid
             }
-            None => {
-                error!("Could not find a value tuner, aborting.");
-                return None;
-            }
+            None => "",
         };
 
         let tuner: Option<Box<dyn Tuner>> = match tuner_id {
-            r820t::TUNER_ID => Some(Box::new(r820t::R820T::new(&handle))),
-            fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&handle))),
+            r820t::TUNER_ID => Some(Box::new(r820t::R820T::new(&self))),
+            fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&self))),
             _ => {
-                error!("Could not find any valid tuner, aborting.");
-                return None;
+                error!("Could not find any valid tuner.");
+                None
             }
         };
 
-        // info!("Found tuner {}", self.tuner.unwrap().display());
-        return tuner;
+        self.tuner = tuner;
+
+        info!("Found tuner {}", self.tuner.as_ref().unwrap().display());
     }
 
     /// Probe all known tuners at their I2C addresses
     /// and search for expected return values
-    fn search_tuner(handle: &RtlSdrDeviceHandle) -> Option<&str> {
+    fn search_tuner(&self) -> Option<&str> {
         for tuner_info in KNOWN_TUNERS.iter() {
-            let regval = handle.i2c_read_reg(tuner_info.i2c_addr, tuner_info.check_addr);
+            let regval = self.i2c_read_reg(tuner_info.i2c_addr, tuner_info.check_addr);
             trace!(
-                "Probing I2C address {:#02x} checking address {:#02x}",
+                "Probing tuner {} at I2C address {:#02x} and checking address {:#02x}",
+                tuner_info.name,
                 tuner_info.i2c_addr,
                 tuner_info.check_addr,
             );
@@ -108,8 +105,8 @@ impl RtlSdrDeviceHandle {
                         return Some(tuner_info.id);
                     }
                 }
-                Err(_) => {
-                    warn!("Reading failed, continuing");
+                Err(e) => {
+                    warn!("Reading failed with {}, continuing", e);
                 }
             };
         }
@@ -226,7 +223,7 @@ impl RtlSdrDeviceHandle {
                 self.read_array(BLOCK_IICB, addr, &mut data, 1);
                 Ok(data[0])
             }
-            Err(_) => Err("Error"),
+            Err(_) => Err("I2C read error"),
         }
     }
 

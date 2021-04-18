@@ -32,11 +32,11 @@ impl RtlSdr {
             let vid = desc.vendor_id();
             let pid = desc.product_id();
 
-            trace!("Found USB device with vid {} and pid {}", vid, pid);
+            trace!("Found USB device {{{:04x}:{:04x}}}", vid, pid);
 
             for kd in KNOWN_DEVICES.iter() {
                 if kd.0 == vid && kd.1 == pid {
-                    info!("Found device {} {{{:04x}:{:04x}}}", kd.2, vid, pid);
+                    info!("Found RTL-SDR device {} {{{:04x}:{:04x}}}", kd.2, vid, pid);
                     let usb_handle = dev.open().unwrap();
                     let mut handle = RtlSdrDeviceHandle::new(usb_handle, INTERFACE_ID);
                     // let kernel_driver_attached = handle.detach_kernel_driver();
@@ -48,6 +48,8 @@ impl RtlSdr {
 
                     handle.init_baseband();
                     handle.set_i2c_repeater(true);
+
+                    handle.init_tuner();
 
                     return Some(handle);
                 }
