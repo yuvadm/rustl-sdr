@@ -3,6 +3,8 @@ use super::RtlSdrDeviceHandle;
 pub mod fc0013;
 pub mod r820t;
 
+pub const KNOWN_TUNERS: [TunerInfo; 2] = [r820t::TUNER_INFO, fc0013::TUNER_INFO];
+
 pub struct TunerInfo {
     pub id: &'static str,
     pub name: &'static str,

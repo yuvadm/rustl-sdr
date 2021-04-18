@@ -2,10 +2,11 @@ extern crate log;
 extern crate pretty_env_logger;
 extern crate rusb;
 
-use log::{error, info};
+use log::{error, info, trace, warn};
 use rusb::{DeviceHandle, Direction, GlobalContext, Recipient, RequestType};
 use std::convert::TryInto;
 use std::time::Duration;
+use tuners::*;
 
 // const BLOCK_DEMODB: u16 = 0;
 const BLOCK_USBB: u16 = 1;
@@ -39,6 +40,7 @@ const CTRL_TIMEOUT: Duration = Duration::from_millis(300);
 
 pub struct RtlSdrDeviceHandle {
     handle: DeviceHandle<GlobalContext>,
+    tuner: Option<Box<dyn Tuner>>,
     iface_id: u8,
     kernel_driver_active: bool,
 }
@@ -47,14 +49,71 @@ pub struct RtlSdrDeviceHandle {
 /// various rtl-sdr specific methods
 impl RtlSdrDeviceHandle {
     pub fn new(handle: DeviceHandle<GlobalContext>, iface_id: u8) -> RtlSdrDeviceHandle {
-        pretty_env_logger::init();
         let mut handle = RtlSdrDeviceHandle {
             handle,
+            tuner: None,
             iface_id,
             kernel_driver_active: false,
         };
+
+        handle.tuner = Self::open_tuner(&handle);
+
         handle.detach_kernel_driver();
         handle
+    }
+
+    fn open_tuner(handle: &RtlSdrDeviceHandle) -> Option<Box<dyn Tuner>> {
+        let tuner_id = match Self::search_tuner(&handle) {
+            Some(tid) => {
+                info!("Got tuner ID {}", tid);
+                tid
+            }
+            None => {
+                error!("Could not find a value tuner, aborting.");
+                return None;
+            }
+        };
+
+        let tuner: Option<Box<dyn Tuner>> = match tuner_id {
+            r820t::TUNER_ID => Some(Box::new(r820t::R820T::new(&handle))),
+            fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&handle))),
+            _ => {
+                error!("Could not find any valid tuner, aborting.");
+                return None;
+            }
+        };
+
+        // info!("Found tuner {}", self.tuner.unwrap().display());
+        return tuner;
+    }
+
+    /// Probe all known tuners at their I2C addresses
+    /// and search for expected return values
+    fn search_tuner(handle: &RtlSdrDeviceHandle) -> Option<&str> {
+        for tuner_info in KNOWN_TUNERS.iter() {
+            let regval = handle.i2c_read_reg(tuner_info.i2c_addr, tuner_info.check_addr);
+            trace!(
+                "Probing I2C address {:#02x} checking address {:#02x}",
+                tuner_info.i2c_addr,
+                tuner_info.check_addr,
+            );
+            match regval {
+                Ok(val) => {
+                    trace!(
+                        "Expecting value {:#02x}, got value {:#02x}",
+                        tuner_info.check_val,
+                        val
+                    );
+                    if val == tuner_info.check_val {
+                        return Some(tuner_info.id);
+                    }
+                }
+                Err(_) => {
+                    warn!("Reading failed, continuing");
+                }
+            };
+        }
+        None
     }
 
     pub fn detach_kernel_driver(&mut self) {
@@ -270,7 +329,7 @@ impl RtlSdrDeviceHandle {
         info!("Exact sample rate is: {} Hz", real_rate);
 
         self.set_i2c_repeater(true);
-        // self.tuner.set_bw(self.handle);
+        self.tuner.as_ref().unwrap().set_bw(real_rate as u32, &self);
         self.set_i2c_repeater(false);
 
         let mut tmp: u16 = (rsamp_ratio >> 16).try_into().unwrap();

@@ -5,8 +5,7 @@ extern crate rusb;
 mod tuners;
 mod usb;
 
-use log::{error, info, trace, warn};
-use tuners::*;
+use log::{info, trace};
 use usb::RtlSdrDeviceHandle;
 
 const INTERFACE_ID: u8 = 0;
@@ -16,24 +15,15 @@ const KNOWN_DEVICES: [(u16, u16, &str); 2] = [
     (0x0bda, 0x2838, "Generic RTL2832U OEM"),
 ];
 
-const KNOWN_TUNERS: [TunerInfo; 2] = [r820t::TUNER_INFO, fc0013::TUNER_INFO];
-
 pub struct RtlSdr {
     handle: RtlSdrDeviceHandle,
-    tuner: Box<dyn Tuner>,
 }
 
 impl RtlSdr {
     pub fn new() -> RtlSdr {
         pretty_env_logger::init();
-
         let handle = Self::open_device().unwrap();
-        let tuner = Self::open_tuner(&handle).unwrap();
-
-        RtlSdr {
-            handle: handle,
-            tuner: tuner,
-        }
+        RtlSdr { handle: handle }
     }
 
     pub fn open_device() -> Option<RtlSdrDeviceHandle> {
@@ -64,60 +54,6 @@ impl RtlSdr {
             }
         }
         return None;
-    }
-
-    fn open_tuner(handle: &RtlSdrDeviceHandle) -> Option<Box<dyn Tuner>> {
-        let tuner_id = match Self::search_tuner(&handle) {
-            Some(tid) => {
-                info!("Got tuner ID {}", tid);
-                tid
-            }
-            None => {
-                error!("Could not find a value tuner, aborting.");
-                return None;
-            }
-        };
-
-        let tuner: Option<Box<dyn Tuner>> = match tuner_id {
-            r820t::TUNER_ID => Some(Box::new(r820t::R820T::new(&handle))),
-            fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&handle))),
-            _ => {
-                error!("Could not find any valid tuner, aborting.");
-                return None;
-            }
-        };
-
-        // info!("Found tuner {}", self.tuner.unwrap().display());
-        return tuner;
-    }
-
-    /// Probe all known tuners at their I2C addresses
-    /// and search for expected return values
-    fn search_tuner(handle: &RtlSdrDeviceHandle) -> Option<&str> {
-        for tuner_info in KNOWN_TUNERS.iter() {
-            let regval = handle.i2c_read_reg(tuner_info.i2c_addr, tuner_info.check_addr);
-            trace!(
-                "Probing I2C address {:#02x} checking address {:#02x}",
-                tuner_info.i2c_addr,
-                tuner_info.check_addr,
-            );
-            match regval {
-                Ok(val) => {
-                    trace!(
-                        "Expecting value {:#02x}, got value {:#02x}",
-                        tuner_info.check_val,
-                        val
-                    );
-                    if val == tuner_info.check_val {
-                        return Some(tuner_info.id);
-                    }
-                }
-                Err(_) => {
-                    warn!("Reading failed, continuing");
-                }
-            };
-        }
-        None
     }
 
     pub fn set_sample_rate(&self, samp_rate: u32) {
