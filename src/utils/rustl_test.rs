@@ -1,5 +1,5 @@
 const DEFAULT_SAMPLE_RATE: u32 = 2048000;
-const _DEFAULT_BUF_LENGTH: usize = 16 * 16384;
+const DEFAULT_BUF_LENGTH: usize = 16 * 16384;
 
 pub fn main() {
     println!("Starting rustl_test");
@@ -9,11 +9,11 @@ pub fn main() {
     r.reset_buffer();
     println!("Reading buffers in sync mode");
     loop {
-        // let samples = r.read_sync(DEFAULT_BUF_LENGTH);
-        // println!(
-        //     "Expected {} samples and got {}",
-        //     DEFAULT_BUF_LENGTH,
-        //     samples.len()
-        // )
+        let samples = r.read_sync(DEFAULT_BUF_LENGTH);
+        println!(
+            "Expected {} samples and got {}",
+            DEFAULT_BUF_LENGTH,
+            samples.len()
+        )
     }
 }

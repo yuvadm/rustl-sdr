@@ -135,6 +135,10 @@ impl RtlSdr {
     pub fn reset_buffer(&self) {
         self.handle.reset_buffer();
     }
+
+    pub fn read_sync(&self, len: usize) -> Vec<u8> {
+        return Vec::with_capacity(len);
+    }
 }
 
 #[cfg(test)]
