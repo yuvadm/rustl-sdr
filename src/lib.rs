@@ -19,23 +19,24 @@ const KNOWN_DEVICES: [(u16, u16, &str); 2] = [
 const KNOWN_TUNERS: [TunerInfo; 2] = [r820t::TUNER_INFO, fc0013::TUNER_INFO];
 
 pub struct RtlSdr {
-    iface_id: u8,
-    tuner: Option<Box<dyn Tuner>>,
-    handle: Option<RtlSdrDeviceHandle>,
+    handle: RtlSdrDeviceHandle,
+    tuner: Box<dyn Tuner>,
 }
 
 impl RtlSdr {
     pub fn new() -> RtlSdr {
         pretty_env_logger::init();
+
+        let handle = Self::open_device().unwrap();
+        let tuner = Self::open_tuner(&handle).unwrap();
+
         RtlSdr {
-            iface_id: INTERFACE_ID,
-            tuner: None,
-            handle: None,
+            handle: handle,
+            tuner: tuner,
         }
     }
 
-    /// Open a new RTL-SDR device
-    pub fn open(&mut self) {
+    pub fn open_device() -> Option<RtlSdrDeviceHandle> {
         for dev in rusb::devices().unwrap().iter() {
             let desc = dev.device_descriptor().unwrap();
             let vid = desc.vendor_id();
@@ -47,8 +48,7 @@ impl RtlSdr {
                 if kd.0 == vid && kd.1 == pid {
                     info!("Found device {} {{{:04x}:{:04x}}}", kd.2, vid, pid);
                     let usb_handle = dev.open().unwrap();
-                    let mut handle = RtlSdrDeviceHandle::new(usb_handle, self.iface_id);
-                    self.handle = Some(handle);
+                    let mut handle = RtlSdrDeviceHandle::new(usb_handle, INTERFACE_ID);
                     // let kernel_driver_attached = handle.detach_kernel_driver();
 
                     let _iface = handle.claim_interface();
@@ -59,37 +59,41 @@ impl RtlSdr {
                     handle.init_baseband();
                     handle.set_i2c_repeater(true);
 
-                    {
-                        let tuner_id = match self.search_tuner(&handle) {
-                            Some(tid) => {
-                                info!("Got tuner ID {}", tid);
-                                tid
-                            }
-                            None => {
-                                error!("Could not find a value tuner, aborting.");
-                                return;
-                            }
-                        };
-
-                        self.tuner = match tuner_id {
-                            r820t::TUNER_ID => Some(Box::new(r820t::R820T::new(&handle))),
-                            fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&handle))),
-                            _ => {
-                                error!("Could not find any valid tuner, aborting.");
-                                return;
-                            }
-                        };
-
-                        // info!("Found tuner {}", self.tuner.unwrap().display());
-                    }
+                    return Some(handle);
                 }
             }
         }
+        return None;
+    }
+
+    fn open_tuner(handle: &RtlSdrDeviceHandle) -> Option<Box<dyn Tuner>> {
+        let tuner_id = match Self::search_tuner(&handle) {
+            Some(tid) => {
+                info!("Got tuner ID {}", tid);
+                tid
+            }
+            None => {
+                error!("Could not find a value tuner, aborting.");
+                return None;
+            }
+        };
+
+        let tuner: Option<Box<dyn Tuner>> = match tuner_id {
+            r820t::TUNER_ID => Some(Box::new(r820t::R820T::new(&handle))),
+            fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&handle))),
+            _ => {
+                error!("Could not find any valid tuner, aborting.");
+                return None;
+            }
+        };
+
+        // info!("Found tuner {}", self.tuner.unwrap().display());
+        return tuner;
     }
 
     /// Probe all known tuners at their I2C addresses
     /// and search for expected return values
-    fn search_tuner(&mut self, handle: &RtlSdrDeviceHandle) -> Option<&str> {
+    fn search_tuner(handle: &RtlSdrDeviceHandle) -> Option<&str> {
         for tuner_info in KNOWN_TUNERS.iter() {
             let regval = handle.i2c_read_reg(tuner_info.i2c_addr, tuner_info.check_addr);
             trace!(
@@ -117,7 +121,7 @@ impl RtlSdr {
     }
 
     pub fn set_sample_rate(&self, samp_rate: u32) {
-        self.handle.unwrap().set_sample_rate(samp_rate);
+        self.handle.set_sample_rate(samp_rate);
     }
 
     pub fn set_test_mode(&self, on: bool) {
@@ -125,11 +129,11 @@ impl RtlSdr {
             true => 0x03,
             false => 0x05,
         };
-        self.handle.unwrap().demod_write_reg(0, 0x19, val, 1);
+        self.handle.demod_write_reg(0, 0x19, val, 1);
     }
 
     pub fn reset_buffer(&self) {
-        self.handle.unwrap().reset_buffer();
+        self.handle.reset_buffer();
     }
 }
 
@@ -139,7 +143,6 @@ mod tests {
 
     #[test]
     fn test_init() {
-        let mut rtlsdr = RtlSdr::new();
-        rtlsdr.open();
+        let _rtlsdr = RtlSdr::new();
     }
 }
