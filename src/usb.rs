@@ -4,6 +4,7 @@ extern crate rusb;
 
 use log::{error, info};
 use rusb::{DeviceHandle, Direction, GlobalContext, Recipient, RequestType};
+use std::convert::TryInto;
 use std::time::Duration;
 
 // const BLOCK_DEMODB: u16 = 0;
@@ -269,22 +270,21 @@ impl RtlSdrDeviceHandle {
         info!("Exact sample rate is: {} Hz", real_rate);
 
         self.set_i2c_repeater(true);
-        self.tuner.set_bw(self.handle);
+        // self.tuner.set_bw(self.handle);
         self.set_i2c_repeater(false);
 
-        let mut tmp: u16 = rsamp_ratio >> 16;
-        self.handle.demod_write_reg(1, 0x9f, tmp, 2);
-        tmp = rsamp_ratio & 0xffff;
-        self.handle.demod_write_reg(1, 0xa1, tmp, 2);
+        let mut tmp: u16 = (rsamp_ratio >> 16).try_into().unwrap();
+        self.demod_write_reg(1, 0x9f, tmp, 2);
+        tmp = (rsamp_ratio & 0xffff).try_into().unwrap();
+        self.demod_write_reg(1, 0xa1, tmp, 2);
         // self.set_sample_freq_corr();
 
         // reset demod (bit 3, soft_rst)
-        self.handle.demod_write_reg(1, 0x01, 0x14, 1);
-        self.handle.demod_write_reg(1, 0x01, 0x10, 1);
-        
+        self.demod_write_reg(1, 0x01, 0x14, 1);
+        self.demod_write_reg(1, 0x01, 0x10, 1);
+
         // self.set_offset_tuning();
     }
-
 
     pub fn reset_buffer(&self) {
         self.write_reg(BLOCK_USBB, ADDR_USB_EPA_CTL, 0x1002, 2);

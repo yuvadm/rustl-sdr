@@ -19,19 +19,18 @@ const KNOWN_DEVICES: [(u16, u16, &str); 2] = [
 const KNOWN_TUNERS: [TunerInfo; 2] = [r820t::TUNER_INFO, fc0013::TUNER_INFO];
 
 pub struct RtlSdr {
-    // ctx: rusb::Context,
-    // device: UsbDevice,
     iface_id: u8,
     tuner: Option<Box<dyn Tuner>>,
+    handle: Option<RtlSdrDeviceHandle>,
 }
 
 impl RtlSdr {
     pub fn new() -> RtlSdr {
         pretty_env_logger::init();
         RtlSdr {
-            // ctx: rusb::Context::new().unwrap(),
             iface_id: INTERFACE_ID,
             tuner: None,
+            handle: None,
         }
     }
 
@@ -49,6 +48,7 @@ impl RtlSdr {
                     info!("Found device {} {{{:04x}:{:04x}}}", kd.2, vid, pid);
                     let usb_handle = dev.open().unwrap();
                     let mut handle = RtlSdrDeviceHandle::new(usb_handle, self.iface_id);
+                    self.handle = Some(handle);
                     // let kernel_driver_attached = handle.detach_kernel_driver();
 
                     let _iface = handle.claim_interface();
@@ -117,7 +117,19 @@ impl RtlSdr {
     }
 
     pub fn set_sample_rate(&self, samp_rate: u32) {
-        self.handle.set_sample_rate(samp_rate);
+        self.handle.unwrap().set_sample_rate(samp_rate);
+    }
+
+    pub fn set_test_mode(&self, on: bool) {
+        let val = match on {
+            true => 0x03,
+            false => 0x05,
+        };
+        self.handle.unwrap().demod_write_reg(0, 0x19, val, 1);
+    }
+
+    pub fn reset_buffer(&self) {
+        self.handle.unwrap().reset_buffer();
     }
 }
 
