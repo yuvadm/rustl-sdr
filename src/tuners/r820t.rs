@@ -1,4 +1,5 @@
-use super::{Tuner, TunerInfo};
+use super::TunerInfo;
+use log::info;
 use usb::RtlSdrDeviceHandle;
 
 pub const TUNER_ID: &str = "r820t";
@@ -55,19 +56,20 @@ pub struct Config {
 }
 
 pub struct R820T {
+    pub handle: RtlSdrDeviceHandle,
     pub device: TunerInfo,
     regs: [u8; NUM_REGS],
     buf: [u8; NUM_REGS + 1],
-    xtal_cal_sel: XtalCapValue,
-    pll: u16, // kHz
-    int_freq: u32,
-    fil_cal_code: u8,
-    input: u8,
-    has_lock: i16,  // bool?
-    init_done: i16, // bool?
-    delsys: u32,
-    tuner_type: TunerType,
-    bw: u32, // MHz
+    // xtal_cal_sel: XtalCapValue,
+    // pll: u16, // kHz
+    // int_freq: u32,
+    // fil_cal_code: u8,
+    // input: u8,
+    // has_lock: i16,  // bool?
+    // init_done: i16, // bool?
+    // delsys: u32,
+    // tuner_type: TunerType,
+    // bw: u32, // MHz
 }
 
 pub const TUNER_INFO: TunerInfo = TunerInfo {
@@ -121,24 +123,40 @@ const XTAL_CAPS: [(u8, XtalCapValue); 5] = [
 ];
 
 impl R820T {
-    pub fn new(handle: &RtlSdrDeviceHandle) -> R820T {
+    pub fn new(handle: RtlSdrDeviceHandle) -> R820T {
         let tuner = R820T {
+            handle: handle,
             device: TUNER_INFO,
-            regs: [u8; NUM_REGS],
-            buf: [u8; NUM_REGS + 1],
-            xtal_cal_sel: XtalCapValue::XtalHighCap0P,
-            pll: u16, // kHz
-            int_freq: u32,
-            fil_cal_code: u8,
-            input: u8,
-            has_lock: i16,  // bool?
-            init_done: i16, // bool?
-            delsys: u32,
-            tuner_type: TunerType,
-            bw: u32, // MHz
+            regs: [0; NUM_REGS],
+            buf: [0; NUM_REGS + 1],
+            // xtal_cal_sel: XtalCapValue::XtalHighCap0P,
+            // pll: u16, // kHz
+            // int_freq: u32,
+            // fil_cal_code: u8,
+            // input: u8,
+            // has_lock: i16,  // bool?
+            // init_done: i16, // bool?
+            // delsys: u32,
+            // tuner_type: TunerType,
+            // bw: u32, // MHz
         };
-        tuner.init(handle);
+        tuner.init();
         tuner
+    }
+
+    fn init(&self) {
+        // disable Zero-IF mode
+        self.handle.demod_write_reg(1, 0xb1, 0x1a, 1);
+
+        // only enable In-phase ADC input
+        self.handle.demod_write_reg(0, 0x08, 0x4d, 1);
+
+        // the R82XX use 3.57 MHz IF for the DVB-T 6 MHz mode, and
+        // 4.57 MHz for the 8 MHz mode
+        self.handle.set_if_freq(IF_FREQ);
+
+        // enable spectrum inversion
+        self.handle.demod_write_reg(1, 0x15, 0x01, 1);
     }
 
     fn shadow_store(&self, reg: u8, val: u8, len: usize) {
@@ -148,7 +166,9 @@ impl R820T {
         }
     }
 
-    fn write(&self, reg: u8, val: u8) -> u8 {}
+    fn write(&self, reg: u8, val: u8) -> u8 {
+        1
+    }
 
     fn write_reg() {}
 
@@ -176,6 +196,11 @@ impl R820T {
     fn read(&self, reg: u8, val: u8, len: usize) {
         let p: u8 = self.buf[1];
         self.buf[0] = reg;
+        // self.handle.i2c_write(self.device.i2c_addr, &p);
+    }
+
+    pub fn exit(&self) {
+        info!("Tuner r820t exiting...");
     }
 }
 
@@ -185,50 +210,50 @@ impl Drop for R820T {
     }
 }
 
-impl Tuner for R820T {
-    fn init(&self, handle: &RtlSdrDeviceHandle) {
-        // disable Zero-IF mode
-        handle.demod_write_reg(1, 0xb1, 0x1a, 1);
+// impl Tuner for R820T {
+//     fn init(&self, handle: &RtlSdrDeviceHandle) {
+//         // disable Zero-IF mode
+//         handle.demod_write_reg(1, 0xb1, 0x1a, 1);
 
-        // only enable In-phase ADC input
-        handle.demod_write_reg(0, 0x08, 0x4d, 1);
+//         // only enable In-phase ADC input
+//         handle.demod_write_reg(0, 0x08, 0x4d, 1);
 
-        // the R82XX use 3.57 MHz IF for the DVB-T 6 MHz mode, and
-        // 4.57 MHz for the 8 MHz mode
-        handle.set_if_freq(IF_FREQ);
+//         // the R82XX use 3.57 MHz IF for the DVB-T 6 MHz mode, and
+//         // 4.57 MHz for the 8 MHz mode
+//         handle.set_if_freq(IF_FREQ);
 
-        // enable spectrum inversion
-        handle.demod_write_reg(1, 0x15, 0x01, 1);
-    }
+//         // enable spectrum inversion
+//         handle.demod_write_reg(1, 0x15, 0x01, 1);
+//     }
 
-    fn exit(&self) {}
+//     fn exit(&self) {}
 
-    fn set_freq(&self, _freq: u32) {
-        unimplemented!()
-    }
+//     fn set_freq(&self, _freq: u32) {
+//         unimplemented!()
+//     }
 
-    fn set_bandwidth(&self, bw: u16, rate: u32, handle: &RtlSdrDeviceHandle) {
-        let mut rc: u16;
-        let mut real_bw: u16 = 0;
-        let mut reg_0a: u8;
-        let mut reg_0b: u8;
+//     fn set_bandwidth(&self, bw: u16, rate: u32, handle: &RtlSdrDeviceHandle) {
+//         let mut rc: u16;
+//         let mut real_bw: u16 = 0;
+//         let mut reg_0a: u8;
+//         let mut reg_0b: u8;
 
-        if bw > 7000000 {}
-    }
+//         if bw > 7000000 {}
+//     }
 
-    fn set_gain(&self, _gain: u32) {
-        unimplemented!()
-    }
+//     fn set_gain(&self, _gain: u32) {
+//         unimplemented!()
+//     }
 
-    fn set_if_gain(&self, _if_gain: u32) {
-        unimplemented!()
-    }
+//     fn set_if_gain(&self, _if_gain: u32) {
+//         unimplemented!()
+//     }
 
-    fn set_gain_mode(&self, _mode: bool) {
-        unimplemented!()
-    }
+//     fn set_gain_mode(&self, _mode: bool) {
+//         unimplemented!()
+//     }
 
-    fn display(&self) -> &str {
-        self.device.name
-    }
-}
+//     fn display(&self) -> &str {
+//         self.device.name
+//     }
+// }

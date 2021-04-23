@@ -16,17 +16,17 @@ const KNOWN_DEVICES: [(u16, u16, &str); 2] = [
 ];
 
 pub struct RtlSdr {
-    handle: RtlSdrDeviceHandle,
+    // handle: RtlSdrDeviceHandle,
 }
 
 impl RtlSdr {
     pub fn new() -> RtlSdr {
         pretty_env_logger::init();
-        let handle = Self::open_device().unwrap();
-        RtlSdr { handle: handle }
+        let handle = Self::open_device();
+        RtlSdr {}
     }
 
-    pub fn open_device() -> Option<RtlSdrDeviceHandle> {
+    pub fn open_device() {
         for dev in rusb::devices().unwrap().iter() {
             let desc = dev.device_descriptor().unwrap();
             let vid = desc.vendor_id();
@@ -50,29 +50,26 @@ impl RtlSdr {
                     handle.set_i2c_repeater(true);
 
                     handle.init_tuner();
-
-                    return Some(handle);
                 }
             }
         }
-        return None;
     }
 
-    pub fn set_sample_rate(&self, samp_rate: u32) {
-        self.handle.set_sample_rate(samp_rate);
-    }
+    // pub fn set_sample_rate(&self, samp_rate: u32) {
+    //     self.handle.set_sample_rate(samp_rate);
+    // }
 
-    pub fn set_test_mode(&self, on: bool) {
-        let val = match on {
-            true => 0x03,
-            false => 0x05,
-        };
-        self.handle.demod_write_reg(0, 0x19, val, 1);
-    }
+    // pub fn set_test_mode(&self, on: bool) {
+    //     let val = match on {
+    //         true => 0x03,
+    //         false => 0x05,
+    //     };
+    //     self.handle.demod_write_reg(0, 0x19, val, 1);
+    // }
 
-    pub fn reset_buffer(&self) {
-        self.handle.reset_buffer();
-    }
+    // pub fn reset_buffer(&self) {
+    //     self.handle.reset_buffer();
+    // }
 
     pub fn read_sync(&self, len: usize) -> Vec<u8> {
         return Vec::with_capacity(len);

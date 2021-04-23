@@ -40,7 +40,7 @@ const CTRL_TIMEOUT: Duration = Duration::from_millis(300);
 
 pub struct RtlSdrDeviceHandle {
     handle: DeviceHandle<GlobalContext>,
-    tuner: Option<Box<dyn Tuner>>,
+    // tuner: Option<r820t::R820T>, // when we go abstract: Option<Box<dyn Tuner>>,
     iface_id: u8,
     kernel_driver_active: bool,
 }
@@ -51,7 +51,7 @@ impl RtlSdrDeviceHandle {
     pub fn new(handle: DeviceHandle<GlobalContext>, iface_id: u8) -> RtlSdrDeviceHandle {
         let mut handle = RtlSdrDeviceHandle {
             handle,
-            tuner: None,
+            // tuner: None,
             iface_id,
             kernel_driver_active: false,
         };
@@ -60,7 +60,7 @@ impl RtlSdrDeviceHandle {
         handle
     }
 
-    pub fn init_tuner(&mut self) {
+    pub fn init_tuner(self) {
         let tuner_id: &str = match self.search_tuner() {
             Some(tid) => {
                 trace!("Found tuner ID {}", tid);
@@ -69,18 +69,18 @@ impl RtlSdrDeviceHandle {
             None => "",
         };
 
-        let tuner: Option<Box<dyn Tuner>> = match tuner_id {
-            r820t::TUNER_ID => Some(Box::new(r820t::R820T::new(&self))),
-            fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&self))),
+        let tuner: Option<r820t::R820T> = match tuner_id {
+            r820t::TUNER_ID => Some(r820t::R820T::new(self)),
+            // fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&self))),
             _ => {
                 error!("Could not find any valid tuner.");
                 None
             }
         };
 
-        self.tuner = tuner;
+        // self.tuner = tuner;
 
-        info!("Found tuner {}", self.tuner.as_ref().unwrap().display());
+        info!("Found tuner r820t");
     }
 
     /// Probe all known tuners at their I2C addresses
@@ -199,6 +199,10 @@ impl RtlSdrDeviceHandle {
             .unwrap()
     }
 
+    pub fn i2c_read(&self, i2c_addr: u8, buf: &mut [u8]) -> usize {
+        self.read_array(BLOCK_IICB, i2c_addr as u16, buf)
+    }
+
     pub fn write_array(&self, block: u8, addr: u16, arr: &[u8]) -> Result<usize, rusb::Error> {
         let type_vendor_out =
             rusb::request_type(Direction::Out, RequestType::Vendor, Recipient::Device);
@@ -221,7 +225,7 @@ impl RtlSdrDeviceHandle {
         }
     }
 
-    pub fn i2c_write(&self, i2c_addr: u8, buf: &[u8], len: usize) {
+    pub fn i2c_write(&self, i2c_addr: u8, buf: &[u8]) {
         self.write_array(BLOCK_IICB, i2c_addr as u16, buf);
     }
 
@@ -356,9 +360,9 @@ impl RtlSdrDeviceHandle {
     }
 }
 
-impl Drop for RtlSdrDeviceHandle {
-    fn drop(&mut self) {
-        self.deinit_baseband();
-        self.attach_kernel_driver();
-    }
-}
+// impl Drop for RtlSdrDeviceHandle {
+//     fn drop(self) {
+//         self.deinit_baseband();
+//         self.attach_kernel_driver();
+//     }
+// }
