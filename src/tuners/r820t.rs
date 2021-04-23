@@ -85,7 +85,7 @@ pub const TUNER_INFO: TunerInfo = TunerInfo {
 };
 
 // starts from REG_SHADOW_START
-const INITIAL_REGS: [u8; NUM_REGS] = vec![
+const INITIAL_REGS: [u8; NUM_REGS - 3] = [
     0x83, 0x32, 0x75, 0xc0, 0x40, 0xd6, 0x6c, 0xf5, 0x63, 0x75, 0x68, 0x6c, 0x83, 0x80, 0x00, 0x0f,
     0x00, 0xc0, 0x30, 0x48, 0xcc, 0x60, 0x00, 0x54, 0xae, 0x4a, 0xc0,
 ];
@@ -159,14 +159,14 @@ impl R820T {
         self.handle.demod_write_reg(1, 0x15, 0x01, 1);
     }
 
-    fn shadow_store(&self, reg: u8, val: u8, len: usize) {
+    fn shadow_store(&self, reg: u8, _val: u8, len: usize) {
         let r = reg as usize - REG_SHADOW_START;
-        if r < 0 {
-            len = len + r;
-        }
+        // if r < 0 {
+        //     len = len + r;
+        // }
     }
 
-    fn write(&self, reg: u8, val: u8) -> u8 {
+    fn write(&self, _reg: u8, _val: u8) -> u8 {
         1
     }
 
@@ -187,15 +187,15 @@ impl R820T {
     }
 
     fn bitrev(byte: usize) -> u8 {
-        const lut: [u8; 16] = [
+        let lut: [u8; 16] = [
             0x0, 0x8, 0x4, 0xc, 0x2, 0xa, 0x6, 0xe, 0x1, 0x9, 0x5, 0xd, 0x3, 0xb, 0x7, 0xf,
         ];
         (lut[byte & 0xf] << 4) | lut[byte >> 4]
     }
 
-    fn read(&self, reg: u8, val: u8, len: usize) {
+    fn read(&self, _reg: u8, _val: u8, _len: usize) {
         let p: u8 = self.buf[1];
-        self.buf[0] = reg;
+        // self.buf[0] = reg;
         // self.handle.i2c_write(self.device.i2c_addr, &p);
     }
 
