@@ -326,7 +326,7 @@ impl RtlSdrDeviceHandle {
         info!("Exact sample rate is: {} Hz", real_rate);
 
         self.set_i2c_repeater(true);
-        self.tuner.as_ref().unwrap().set_bw(real_rate as u32, &self);
+        // self.tuner.as_ref().unwrap().set_bw(real_rate as u32, &self);
         self.set_i2c_repeater(false);
 
         let mut tmp: u16 = (rsamp_ratio >> 16).try_into().unwrap();

@@ -41,7 +41,7 @@ impl Tuner for FC0013 {
         unimplemented!()
     }
 
-    fn set_bandwidth(&self, _bw: u32, _handle: &RtlSdrDeviceHandle) {
+    fn set_bandwidth(&self, _bw: u16, _rate: u32, _handle: &RtlSdrDeviceHandle) {
         unimplemented!()
     }
 

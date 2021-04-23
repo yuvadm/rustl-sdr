@@ -8,7 +8,7 @@ const I2C_ADDR: u8 = 0x34;
 const CHECK_ADDR: u8 = 0x00;
 const CHECK_VAL: u8 = 0x69;
 const IF_FREQ: u32 = 3570000;
-const REG_SHADOW_START: u8 = 5;
+const REG_SHADOW_START: usize = 5;
 const NUM_REGS: usize = 30;
 const NUM_IMR: usize = 5;
 const IMR_TRIAL: u8 = 9;
@@ -36,22 +36,6 @@ enum XtalCapValue {
     XtalHighCap0P,
 }
 
-pub struct R820T {
-    pub device: TunerInfo,
-    regs: [u8; NUM_REGS],
-    buf: [u8; NUM_REGS + 1],
-    xtal_cal_sel: XtalCapValue,
-    pll: u16, // kHz
-    int_freq: u32,
-    fil_cal_code: u8,
-    input: u8,
-    has_lock: i16,  // bool?
-    init_done: i16, // bool?
-    delsys: u32,
-    tuner_type: TunerType,
-    bw: u32, // MHz
-}
-
 pub struct FreqRange {
     freq: u32,
     open_d: u8,
@@ -68,6 +52,22 @@ pub struct Config {
     chip: Chip,
     max_i2c_msg_len: u16,
     use_predetect: i16, // bool?
+}
+
+pub struct R820T {
+    pub device: TunerInfo,
+    regs: [u8; NUM_REGS],
+    buf: [u8; NUM_REGS + 1],
+    xtal_cal_sel: XtalCapValue,
+    pll: u16, // kHz
+    int_freq: u32,
+    fil_cal_code: u8,
+    input: u8,
+    has_lock: i16,  // bool?
+    init_done: i16, // bool?
+    delsys: u32,
+    tuner_type: TunerType,
+    bw: u32, // MHz
 }
 
 pub const TUNER_INFO: TunerInfo = TunerInfo {
@@ -122,9 +122,55 @@ const XTAL_CAPS: [(u8, XtalCapValue); 5] = [
 
 impl R820T {
     pub fn new(handle: &RtlSdrDeviceHandle) -> R820T {
-        let tuner = R820T { device: TUNER_INFO };
+        let tuner = R820T {
+            device: TUNER_INFO,
+            regs: [u8; NUM_REGS],
+            buf: [u8; NUM_REGS + 1],
+            xtal_cal_sel: XtalCapValue::XtalHighCap0P,
+            pll: u16, // kHz
+            int_freq: u32,
+            fil_cal_code: u8,
+            input: u8,
+            has_lock: i16,  // bool?
+            init_done: i16, // bool?
+            delsys: u32,
+            tuner_type: TunerType,
+            bw: u32, // MHz
+        };
         tuner.init(handle);
         tuner
+    }
+
+    fn shadow_store(&self, reg: u8, val: u8, len: usize) {
+        let r = reg as usize - REG_SHADOW_START;
+        if r < 0 {
+            len = len + r;
+        }
+    }
+
+    fn write(&self, reg: u8, val: u8) -> u8 {}
+
+    fn write_reg() {}
+
+    fn read_cache_reg(&self, reg: u8) -> Option<u8> {
+        let reg: usize = reg as usize - REG_SHADOW_START;
+        match reg >= 0 && reg < NUM_REGS {
+            true => Some(self.regs[reg]),
+            false => None,
+        }
+    }
+
+    fn write_reg_mask(&self, reg: u8, val: u8, bit_mask: u8) -> u8 {
+        let rc = self.read_cache_reg(reg).unwrap();
+        let val = (rc & !bit_mask) | (val & bit_mask);
+        self.write(reg, val)
+    }
+
+    fn bitrev(byte: usize) -> u8 {
+        const lut: [u8; 16] = [
+            0x0, 0x8, 0x4, 0xc, 0x2, 0xa, 0x6, 0xe, 0x1, 0x9, 0x5, 0xd, 0x3, 0xb, 0x7, 0xf,
+        ];
+        (lut[byte & 0xf] << 4) | lut[byte >> 4]
     }
 }
 
