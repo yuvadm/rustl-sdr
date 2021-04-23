@@ -172,6 +172,11 @@ impl R820T {
         ];
         (lut[byte & 0xf] << 4) | lut[byte >> 4]
     }
+
+    fn read(&self, reg: u8, val: u8, len: usize) {
+        let p: u8 = self.buf[1];
+        self.buf[0] = reg;
+    }
 }
 
 impl Drop for R820T {

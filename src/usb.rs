@@ -190,7 +190,7 @@ impl RtlSdrDeviceHandle {
         self.demod_read_reg(0x0a, 0x01, 1)
     }
 
-    pub fn read_array(&self, block: u8, addr: u16, arr: &mut [u8], _len: u8) -> usize {
+    pub fn read_array(&self, block: u8, addr: u16, arr: &mut [u8]) -> usize {
         let type_vendor_in =
             rusb::request_type(Direction::In, RequestType::Vendor, Recipient::Device);
         let index: u16 = (block as u16) << 8;
@@ -199,13 +199,7 @@ impl RtlSdrDeviceHandle {
             .unwrap()
     }
 
-    pub fn write_array(
-        &self,
-        block: u8,
-        addr: u16,
-        arr: &[u8],
-        _len: u8,
-    ) -> Result<usize, rusb::Error> {
+    pub fn write_array(&self, block: u8, addr: u16, arr: &[u8]) -> Result<usize, rusb::Error> {
         let type_vendor_out =
             rusb::request_type(Direction::Out, RequestType::Vendor, Recipient::Device);
         let index: u16 = ((block as u16) << 8) | 0x10;
@@ -218,13 +212,22 @@ impl RtlSdrDeviceHandle {
         let reg: [u8; 1] = [reg];
         let mut data: [u8; 1] = [0];
 
-        match self.write_array(BLOCK_IICB, addr, &reg, 1) {
+        match self.write_array(BLOCK_IICB, addr, &reg) {
             Ok(_res) => {
-                self.read_array(BLOCK_IICB, addr, &mut data, 1);
+                self.read_array(BLOCK_IICB, addr, &mut data);
                 Ok(data[0])
             }
             Err(_) => Err("I2C read error"),
         }
+    }
+
+    pub fn i2c_write(&self, i2c_addr: u8, buf: &[u8], len: usize) {
+        self.write_array(BLOCK_IICB, i2c_addr as u16, buf);
+    }
+
+    pub fn i2c_write_reg(&self, i2c_addr: u8, reg: u8, val: u8) {
+        let data: [u8; 2] = [reg, val];
+        self.write_array(BLOCK_IICB, i2c_addr as u16, &data);
     }
 
     pub fn set_i2c_repeater(&self, on: bool) {
