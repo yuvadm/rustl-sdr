@@ -114,6 +114,53 @@ const FREQ_RANGES: [(u32, u8, u8, u8, u8, u8, u8); 21] = [
     (650, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00),
 ];
 
+fn get_freq_range(freq: u32) -> FreqRange {
+    let open_d = match freq {
+        0..=69 => 0x08,
+        _ => 0x00,
+    };
+    let rf_mux_ploy = match freq {
+        0..=279 => 0x02,
+        280..=449 => 0x41,
+        _ => 0x40,
+    };
+    let tf_c = match freq {
+        0 => 0xdf,
+        1..=49 => 0xbe,
+        50..=54 => 0x8b,
+        55..=59 => 0x7b,
+        60..=64 => 0x69,
+        65..=69 => 0x58,
+        70..=79 => 0x44,
+        80..=99 => 0x34,
+        100..=119 => 0x24,
+        120..=139 => 0x14,
+        140..=219 => 0x13,
+        220..=249 => 0x11,
+        _ => 0x00,
+    };
+    let xtal_cap20p = match freq {
+        0..=79 => 0x02,
+        80..=139 => 0x01,
+        _ => 0x00,
+    };
+    let xtal_cap10p = match freq {
+        0..=139 => 0x01,
+        _ => 0x00,
+    };
+    let xtal_cap0p = 0x00;
+
+    FreqRange {
+        freq,
+        open_d,
+        rf_mux_ploy,
+        tf_c,
+        xtal_cap20p,
+        xtal_cap10p,
+        xtal_cap0p,
+    }
+}
+
 const XTAL_CAPS: [(u8, XtalCapValue); 5] = [
     (0x0b, XtalCapValue::XtalLowCap30P),
     (0x02, XtalCapValue::XtalLowCap20P),
