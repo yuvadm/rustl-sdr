@@ -1,4 +1,4 @@
-use super::TunerInfo;
+use super::{Tuner, TunerInfo};
 use log::info;
 use usb::RtlSdrDeviceHandle;
 
@@ -56,7 +56,6 @@ pub struct Config {
 }
 
 pub struct R820T {
-    pub handle: RtlSdrDeviceHandle,
     pub device: TunerInfo,
     regs: [u8; NUM_REGS],
     buf: [u8; NUM_REGS + 1],
@@ -90,7 +89,7 @@ const INITIAL_REGS: [u8; NUM_REGS - 3] = [
     0x00, 0xc0, 0x30, 0x48, 0xcc, 0x60, 0x00, 0x54, 0xae, 0x4a, 0xc0,
 ];
 
-const FREQ_RANGES: [(u32, u8, u8, u8, u8, u8, u8); 21] = [
+const _FREQ_RANGES: [(u32, u8, u8, u8, u8, u8, u8); 21] = [
     (000, 0x08, 0x02, 0xdf, 0x02, 0x01, 0x00),
     (050, 0x08, 0x02, 0xbe, 0x02, 0x01, 0x00),
     (055, 0x08, 0x02, 0x8b, 0x02, 0x01, 0x00),
@@ -161,7 +160,7 @@ fn get_freq_range(freq: u32) -> FreqRange {
     }
 }
 
-const XTAL_CAPS: [(u8, XtalCapValue); 5] = [
+const _XTAL_CAPS: [(u8, XtalCapValue); 5] = [
     (0x0b, XtalCapValue::XtalLowCap30P),
     (0x02, XtalCapValue::XtalLowCap20P),
     (0x01, XtalCapValue::XtalLowCap10P),
@@ -170,9 +169,8 @@ const XTAL_CAPS: [(u8, XtalCapValue); 5] = [
 ];
 
 impl R820T {
-    pub fn new(handle: RtlSdrDeviceHandle) -> R820T {
+    pub fn new(handle: &RtlSdrDeviceHandle) -> R820T {
         let tuner = R820T {
-            handle: handle,
             device: TUNER_INFO,
             regs: [0; NUM_REGS],
             buf: [0; NUM_REGS + 1],
@@ -187,23 +185,23 @@ impl R820T {
             // tuner_type: TunerType,
             // bw: u32, // MHz
         };
-        tuner.init();
+        tuner.init(handle);
         tuner
     }
 
-    fn init(&self) {
+    fn init(&self, handle: &RtlSdrDeviceHandle) {
         // disable Zero-IF mode
-        self.handle.demod_write_reg(1, 0xb1, 0x1a, 1);
+        handle.demod_write_reg(1, 0xb1, 0x1a, 1);
 
         // only enable In-phase ADC input
-        self.handle.demod_write_reg(0, 0x08, 0x4d, 1);
+        handle.demod_write_reg(0, 0x08, 0x4d, 1);
 
         // the R82XX use 3.57 MHz IF for the DVB-T 6 MHz mode, and
         // 4.57 MHz for the 8 MHz mode
-        self.handle.set_if_freq(IF_FREQ);
+        handle.set_if_freq(IF_FREQ);
 
         // enable spectrum inversion
-        self.handle.demod_write_reg(1, 0x15, 0x01, 1);
+        handle.demod_write_reg(1, 0x15, 0x01, 1);
     }
 
     fn shadow_store(&self, reg: u8, _val: u8, len: usize) {
@@ -257,50 +255,50 @@ impl Drop for R820T {
     }
 }
 
-// impl Tuner for R820T {
-//     fn init(&self, handle: &RtlSdrDeviceHandle) {
-//         // disable Zero-IF mode
-//         handle.demod_write_reg(1, 0xb1, 0x1a, 1);
+impl Tuner for R820T {
+    fn init(&self, handle: &RtlSdrDeviceHandle) {
+        // disable Zero-IF mode
+        handle.demod_write_reg(1, 0xb1, 0x1a, 1);
 
-//         // only enable In-phase ADC input
-//         handle.demod_write_reg(0, 0x08, 0x4d, 1);
+        // only enable In-phase ADC input
+        handle.demod_write_reg(0, 0x08, 0x4d, 1);
 
-//         // the R82XX use 3.57 MHz IF for the DVB-T 6 MHz mode, and
-//         // 4.57 MHz for the 8 MHz mode
-//         handle.set_if_freq(IF_FREQ);
+        // the R82XX use 3.57 MHz IF for the DVB-T 6 MHz mode, and
+        // 4.57 MHz for the 8 MHz mode
+        handle.set_if_freq(IF_FREQ);
 
-//         // enable spectrum inversion
-//         handle.demod_write_reg(1, 0x15, 0x01, 1);
-//     }
+        // enable spectrum inversion
+        handle.demod_write_reg(1, 0x15, 0x01, 1);
+    }
 
-//     fn exit(&self) {}
+    fn exit(&self) {}
 
-//     fn set_freq(&self, _freq: u32) {
-//         unimplemented!()
-//     }
+    fn set_freq(&self, _freq: u32) {
+        unimplemented!()
+    }
 
-//     fn set_bandwidth(&self, bw: u16, rate: u32, handle: &RtlSdrDeviceHandle) {
-//         let mut rc: u16;
-//         let mut real_bw: u16 = 0;
-//         let mut reg_0a: u8;
-//         let mut reg_0b: u8;
+    fn set_bandwidth(&self, _bw: u16, _rate: u32, _handle: &RtlSdrDeviceHandle) {
+        let mut _rc: u16;
+        let mut _real_bw: u16 = 0;
+        let mut _reg_0a: u8;
+        let mut _reg_0b: u8;
 
-//         if bw > 7000000 {}
-//     }
+        // if bw > 7000000 {}
+    }
 
-//     fn set_gain(&self, _gain: u32) {
-//         unimplemented!()
-//     }
+    fn set_gain(&self, _gain: u32) {
+        unimplemented!()
+    }
 
-//     fn set_if_gain(&self, _if_gain: u32) {
-//         unimplemented!()
-//     }
+    fn set_if_gain(&self, _if_gain: u32) {
+        unimplemented!()
+    }
 
-//     fn set_gain_mode(&self, _mode: bool) {
-//         unimplemented!()
-//     }
+    fn set_gain_mode(&self, _mode: bool) {
+        unimplemented!()
+    }
 
-//     fn display(&self) -> &str {
-//         self.device.name
-//     }
-// }
+    fn display(&self) -> &str {
+        self.device.name
+    }
+}

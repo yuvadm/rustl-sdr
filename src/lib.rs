@@ -16,17 +16,17 @@ const KNOWN_DEVICES: [(u16, u16, &str); 2] = [
 ];
 
 pub struct RtlSdr {
-    // handle: RtlSdrDeviceHandle,
+    handle: RtlSdrDeviceHandle,
 }
 
 impl RtlSdr {
     pub fn new() -> RtlSdr {
         pretty_env_logger::init();
-        let handle = Self::open_device();
-        RtlSdr {}
+        let handle = Self::open_device().unwrap();
+        RtlSdr { handle }
     }
 
-    pub fn open_device() {
+    pub fn open_device() -> Option<RtlSdrDeviceHandle> {
         for dev in rusb::devices().unwrap().iter() {
             let desc = dev.device_descriptor().unwrap();
             let vid = desc.vendor_id();
@@ -50,9 +50,12 @@ impl RtlSdr {
                     handle.set_i2c_repeater(true);
 
                     handle.init_tuner();
+
+                    return Some(handle);
                 }
             }
         }
+        None
     }
 
     // pub fn set_sample_rate(&self, samp_rate: u32) {

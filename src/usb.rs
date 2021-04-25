@@ -40,7 +40,7 @@ const CTRL_TIMEOUT: Duration = Duration::from_millis(300);
 
 pub struct RtlSdrDeviceHandle {
     handle: DeviceHandle<GlobalContext>,
-    // tuner: Option<r820t::R820T>, // when we go abstract: Option<Box<dyn Tuner>>,
+    tuner: Option<Box<dyn Tuner>>,
     iface_id: u8,
     kernel_driver_active: bool,
 }
@@ -51,7 +51,7 @@ impl RtlSdrDeviceHandle {
     pub fn new(handle: DeviceHandle<GlobalContext>, iface_id: u8) -> RtlSdrDeviceHandle {
         let mut handle = RtlSdrDeviceHandle {
             handle,
-            // tuner: None,
+            tuner: None,
             iface_id,
             kernel_driver_active: false,
         };
@@ -60,7 +60,7 @@ impl RtlSdrDeviceHandle {
         handle
     }
 
-    pub fn init_tuner(self) {
+    pub fn init_tuner(&mut self) {
         let tuner_id: &str = match self.search_tuner() {
             Some(tid) => {
                 trace!("Found tuner ID {}", tid);
@@ -69,16 +69,16 @@ impl RtlSdrDeviceHandle {
             None => "",
         };
 
-        let tuner: Option<r820t::R820T> = match tuner_id {
-            r820t::TUNER_ID => Some(r820t::R820T::new(self)),
-            // fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&self))),
+        let tuner: Option<Box<dyn Tuner>> = match tuner_id {
+            r820t::TUNER_ID => Some(Box::new(r820t::R820T::new(&self))),
+            fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&self))),
             _ => {
                 error!("Could not find any valid tuner.");
                 None
             }
         };
 
-        // self.tuner = tuner;
+        self.tuner = tuner;
 
         info!("Found tuner r820t");
     }
@@ -226,12 +226,13 @@ impl RtlSdrDeviceHandle {
     }
 
     pub fn i2c_write(&self, i2c_addr: u8, buf: &[u8]) {
-        self.write_array(BLOCK_IICB, i2c_addr as u16, buf);
+        self.write_array(BLOCK_IICB, i2c_addr as u16, buf).unwrap();
     }
 
     pub fn i2c_write_reg(&self, i2c_addr: u8, reg: u8, val: u8) {
         let data: [u8; 2] = [reg, val];
-        self.write_array(BLOCK_IICB, i2c_addr as u16, &data);
+        self.write_array(BLOCK_IICB, i2c_addr as u16, &data)
+            .unwrap();
     }
 
     pub fn set_i2c_repeater(&self, on: bool) {
