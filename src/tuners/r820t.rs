@@ -61,7 +61,7 @@ pub struct R820T {
     buf: [u8; NUM_REGS + 1],
     // xtal_cal_sel: XtalCapValue,
     // pll: u16, // kHz
-    // int_freq: u32,
+    int_freq: u32,
     // fil_cal_code: u8,
     // input: u8,
     // has_lock: i16,  // bool?
@@ -111,6 +111,10 @@ const _FREQ_RANGES: [(u32, u8, u8, u8, u8, u8, u8); 21] = [
     (450, 0x00, 0x41, 0x00, 0x00, 0x00, 0x00),
     (588, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00),
     (650, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00),
+];
+
+const LOW_PASS_BW_TABLE: [u32; 10] = [
+    1700000, 1600000, 1550000, 1450000, 1200000, 900000, 700000, 550000, 450000, 350000,
 ];
 
 fn get_freq_range(freq: u32) -> FreqRange {
@@ -176,7 +180,7 @@ impl R820T {
             buf: [0; NUM_REGS + 1],
             // xtal_cal_sel: XtalCapValue::XtalHighCap0P,
             // pll: u16, // kHz
-            // int_freq: u32,
+            int_freq: 0,
             // fil_cal_code: u8,
             // input: u8,
             // has_lock: i16,  // bool?
@@ -277,13 +281,63 @@ impl Tuner for R820T {
         unimplemented!()
     }
 
-    fn set_bandwidth(&self, _bw: u16, _rate: u32, _handle: &RtlSdrDeviceHandle) {
-        let mut _rc: u16;
-        let mut _real_bw: u16 = 0;
-        let mut _reg_0a: u8;
-        let mut _reg_0b: u8;
+    fn set_bandwidth(&mut self, mut bw: u32, rate: u32, handle: &RtlSdrDeviceHandle) {
+        const FILT_HP_BW1: u32 = 350000;
+        const FILT_HP_BW2: u32 = 380000;
 
-        // if bw > 7000000 {}
+        let mut real_bw: u32 = 0;
+        let reg_0a: u8;
+        let mut reg_0b: u8;
+
+        if bw > 7000000 {
+            reg_0a = 0x10;
+            reg_0b = 0x0b;
+            self.int_freq = 4570000;
+        } else if bw > 6000000 {
+            reg_0a = 0x10;
+            reg_0b = 0x2a;
+            self.int_freq = 4570000;
+        } else if bw > LOW_PASS_BW_TABLE[0] + FILT_HP_BW1 + FILT_HP_BW2 {
+            reg_0a = 0x10;
+            reg_0b = 0x6b;
+            self.int_freq = 3570000;
+        } else {
+            reg_0a = 0x00;
+            reg_0b = 0x80;
+            self.int_freq = 2300000;
+
+            if bw > LOW_PASS_BW_TABLE[0] + FILT_HP_BW1 {
+                bw -= FILT_HP_BW2;
+                self.int_freq += FILT_HP_BW2;
+                real_bw += FILT_HP_BW2;
+            } else {
+                reg_0b |= 0x20;
+            }
+
+            if bw > LOW_PASS_BW_TABLE[0] {
+                bw -= FILT_HP_BW1;
+                self.int_freq += FILT_HP_BW1;
+                real_bw += FILT_HP_BW1;
+            } else {
+                reg_0b |= 0x40;
+            }
+
+            let mut j = 0;
+            for (i, lpfreq) in LOW_PASS_BW_TABLE.iter().enumerate() {
+                if bw > *lpfreq {
+                    j = i - 1;
+                    break;
+                }
+            }
+            // can probably clean this up
+            reg_0b |= 15 - (j as u8);
+            real_bw += LOW_PASS_BW_TABLE[j];
+
+            self.int_freq -= real_bw / 2;
+        }
+
+        self.write_reg_mask(0x0a, reg_0a, 0x10);
+        self.write_reg_mask(0x0b, reg_0b, 0xef);
     }
 
     fn set_gain(&self, _gain: u32) {

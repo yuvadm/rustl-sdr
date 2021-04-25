@@ -58,21 +58,21 @@ impl RtlSdr {
         None
     }
 
-    // pub fn set_sample_rate(&self, samp_rate: u32) {
-    //     self.handle.set_sample_rate(samp_rate);
-    // }
+    pub fn set_sample_rate(&self, samp_rate: u32) {
+        self.handle.set_sample_rate(samp_rate);
+    }
 
-    // pub fn set_test_mode(&self, on: bool) {
-    //     let val = match on {
-    //         true => 0x03,
-    //         false => 0x05,
-    //     };
-    //     self.handle.demod_write_reg(0, 0x19, val, 1);
-    // }
+    pub fn set_test_mode(&self, on: bool) {
+        let val = match on {
+            true => 0x03,
+            false => 0x05,
+        };
+        self.handle.demod_write_reg(0, 0x19, val, 1);
+    }
 
-    // pub fn reset_buffer(&self) {
-    //     self.handle.reset_buffer();
-    // }
+    pub fn reset_buffer(&self) {
+        self.handle.reset_buffer();
+    }
 
     pub fn read_sync(&self, len: usize) -> Vec<u8> {
         return Vec::with_capacity(len);
