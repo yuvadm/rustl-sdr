@@ -40,7 +40,8 @@ const CTRL_TIMEOUT: Duration = Duration::from_millis(300);
 
 pub struct RtlSdrDeviceHandle {
     handle: DeviceHandle<GlobalContext>,
-    tuner: Option<Box<dyn Tuner>>,
+    tuner: Option<Tuners>,
+    // tuner: Option<Box<dyn Tuner>>,
     iface_id: u8,
     kernel_driver_active: bool,
 }
@@ -69,9 +70,11 @@ impl RtlSdrDeviceHandle {
             None => "",
         };
 
-        let tuner: Option<Box<dyn Tuner>> = match tuner_id {
-            r820t::TUNER_ID => Some(Box::new(r820t::R820T::new(&self))),
-            fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&self))),
+        let tuner: Option<Tuners> = match tuner_id {
+            r820t::TUNER_ID => Some(Tuners::R820T(r820t::R820T::new(&self))),
+            fc0013::TUNER_ID => Some(Tuners::FC0013(fc0013::FC0013::new(&self))),
+            // r820t::TUNER_ID => Some(Box::new(r820t::R820T::new(&self))),
+            // fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&self))),
             _ => {
                 error!("Could not find any valid tuner.");
                 None
