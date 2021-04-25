@@ -18,9 +18,14 @@ pub trait Tuner {
     fn init(&self, handle: &RtlSdrDeviceHandle);
     fn exit(&self);
     fn set_freq(&self, freq: u32);
-    fn set_bandwidth(&self, bw: u16, rate: u32, handle: &RtlSdrDeviceHandle);
+    fn set_bandwidth(&mut self, bw: u32, rate: u32, handle: &RtlSdrDeviceHandle);
     fn set_gain(&self, gain: u32);
     fn set_if_gain(&self, if_gain: u32);
     fn set_gain_mode(&self, mode: bool);
     fn display(&self) -> &str;
+}
+
+pub enum Tuners {
+    R820T(r820t::R820T),
+    FC0013(fc0013::FC0013),
 }
