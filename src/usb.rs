@@ -245,6 +245,20 @@ impl RtlSdrDeviceHandle {
         self.demod_write_reg(0, 0x0d, 0x83, 1);
     }
 
+    pub fn set_if_freq(&self, freq: u32) {
+        const DEF_RTL_XTAL_FREQ: u32 = 28800000;
+        let rtl_xtal: u32 = DEF_RTL_XTAL_FREQ; // need to apply PPM correction
+        let base = 1u32 << 22;
+        let if_freq: i32 = (freq as f64 * base as f64 / rtl_xtal as f64 * -1f64) as i32;
+
+        let tmp = ((if_freq >> 16) as u16) & 0x3f;
+        self.demod_write_reg(1, 0x19, tmp, 1);
+        let tmp = ((if_freq >> 8) as u16) & 0xff;
+        self.demod_write_reg(1, 0x1a, tmp, 1);
+        let tmp = if_freq as u16 & 0xff;
+        self.demod_write_reg(1, 0x1b, tmp, 1);
+    }
+
     pub fn reset_buffer(&self) {
         self.write_reg(BLOCK_USBB, ADDR_USB_EPA_CTL, 0x1002, 2);
         self.write_reg(BLOCK_USBB, ADDR_USB_EPA_CTL, 0x0000, 2);

@@ -111,7 +111,7 @@ impl RtlSdr {
 
     pub fn set_freq(&self) {}
 
-    pub fn set_sample_rate(self, samp_rate: u32) {
+    pub fn set_sample_rate(&mut self, samp_rate: u32) {
         let real_rsamp_ratio: u32;
 
         // check if the rate is supported by the resampler
@@ -131,6 +131,7 @@ impl RtlSdr {
 
         self.handle.set_i2c_repeater(true);
         self.tuner
+            .as_mut()
             .unwrap()
             .set_bandwidth(real_rate as u32, &self.handle);
         self.handle.set_i2c_repeater(false);
@@ -149,16 +150,7 @@ impl RtlSdr {
     }
 
     pub fn set_if_freq(&self, freq: u32) {
-        let rtl_xtal: u32 = DEF_RTL_XTAL_FREQ; // need to apply PPM correction
-        let base = 1u32 << 22;
-        let if_freq: i32 = (freq as f64 * base as f64 / rtl_xtal as f64 * -1f64) as i32;
-
-        let tmp = ((if_freq >> 16) as u16) & 0x3f;
-        self.handle.demod_write_reg(1, 0x19, tmp, 1);
-        let tmp = ((if_freq >> 8) as u16) & 0xff;
-        self.handle.demod_write_reg(1, 0x1a, tmp, 1);
-        let tmp = if_freq as u16 & 0xff;
-        self.handle.demod_write_reg(1, 0x1b, tmp, 1);
+        self.handle.set_if_freq(freq);
     }
 
     pub fn set_test_mode(&self, on: bool) {
