@@ -33,27 +33,27 @@ impl Tuner for FC0013 {
         unimplemented!()
     }
 
-    fn exit(&self) {
+    fn exit(&self, handle: &RtlSdrDeviceHandle) {
         unimplemented!()
     }
 
-    fn set_freq(&self, _freq: u32) {
+    fn set_frequency(&self, _freq: u32, handle: &RtlSdrDeviceHandle) {
         unimplemented!()
     }
 
-    fn set_bandwidth(&mut self, _bw: u32, _rate: u32, _handle: &RtlSdrDeviceHandle) {
+    fn set_bandwidth(&mut self, _bw: u32, _handle: &RtlSdrDeviceHandle) {
         unimplemented!()
     }
 
-    fn set_gain(&self, _gain: u32) {
+    fn set_gain(&self, _gain: u32, handle: &RtlSdrDeviceHandle) {
         unimplemented!()
     }
 
-    fn set_if_gain(&self, _if_gain: u32) {
+    fn set_if_gain(&self, _if_gain: u32, handle: &RtlSdrDeviceHandle) {
         unimplemented!()
     }
 
-    fn set_gain_mode(&self, _mode: bool) {
+    fn set_gain_mode(&self, _mode: bool, handle: &RtlSdrDeviceHandle) {
         unimplemented!()
     }
 

@@ -16,12 +16,12 @@ pub struct TunerInfo {
 
 pub trait Tuner {
     fn init(&self, handle: &RtlSdrDeviceHandle);
-    fn exit(&self);
-    fn set_freq(&self, freq: u32);
-    fn set_bandwidth(&mut self, bw: u32, rate: u32, handle: &RtlSdrDeviceHandle);
-    fn set_gain(&self, gain: u32);
-    fn set_if_gain(&self, if_gain: u32);
-    fn set_gain_mode(&self, mode: bool);
+    fn exit(&self, handle: &RtlSdrDeviceHandle);
+    fn set_frequency(&self, freq: u32, handle: &RtlSdrDeviceHandle);
+    fn set_bandwidth(&mut self, rate: u32, handle: &RtlSdrDeviceHandle);
+    fn set_gain(&self, gain: u32, handle: &RtlSdrDeviceHandle);
+    fn set_if_gain(&self, if_gain: u32, handle: &RtlSdrDeviceHandle);
+    fn set_gain_mode(&self, mode: bool, handle: &RtlSdrDeviceHandle);
     fn display(&self) -> &str;
 }
 

@@ -4,7 +4,6 @@ extern crate rusb;
 
 use log::{error, info, trace, warn};
 use rusb::{DeviceHandle, Direction, GlobalContext, Recipient, RequestType};
-use std::convert::TryInto;
 use std::time::Duration;
 use tuners::*;
 
@@ -32,16 +31,12 @@ const FIR_DEFAULT: [u8; FIR_LENGTH] = [
     0x74, 0x19, 0x41, 0xa5,
 ];
 
-const DEF_RTL_XTAL_FREQ: u32 = 28800000;
-// const MIN_RTL_XTAL_FREQ: u32 = DEF_RTL_XTAL_FREQ - 1000;
-// const MAX_RTL_XTAL_FREQ: u32 = DEF_RTL_XTAL_FREQ + 1000;
-
 const CTRL_TIMEOUT: Duration = Duration::from_millis(300);
 
 pub struct RtlSdrDeviceHandle {
     handle: DeviceHandle<GlobalContext>,
-    tuner: Option<Tuners>,
-    // tuner: Option<Box<dyn Tuner>>,
+    // tuner: Option<Tuners>,
+    tuner: Option<Box<dyn Tuner>>,
     iface_id: u8,
     kernel_driver_active: bool,
 }
@@ -59,61 +54,6 @@ impl RtlSdrDeviceHandle {
 
         handle.detach_kernel_driver();
         handle
-    }
-
-    pub fn init_tuner(&mut self) {
-        let tuner_id: &str = match self.search_tuner() {
-            Some(tid) => {
-                trace!("Found tuner ID {}", tid);
-                tid
-            }
-            None => "",
-        };
-
-        let tuner: Option<Tuners> = match tuner_id {
-            r820t::TUNER_ID => Some(Tuners::R820T(r820t::R820T::new(&self))),
-            fc0013::TUNER_ID => Some(Tuners::FC0013(fc0013::FC0013::new(&self))),
-            // r820t::TUNER_ID => Some(Box::new(r820t::R820T::new(&self))),
-            // fc0013::TUNER_ID => Some(Box::new(fc0013::FC0013::new(&self))),
-            _ => {
-                error!("Could not find any valid tuner.");
-                None
-            }
-        };
-
-        self.tuner = tuner;
-
-        info!("Found tuner r820t");
-    }
-
-    /// Probe all known tuners at their I2C addresses
-    /// and search for expected return values
-    fn search_tuner(&self) -> Option<&str> {
-        for tuner_info in KNOWN_TUNERS.iter() {
-            let regval = self.i2c_read_reg(tuner_info.i2c_addr, tuner_info.check_addr);
-            trace!(
-                "Probing tuner {} at I2C address {:#02x} and checking address {:#02x}",
-                tuner_info.name,
-                tuner_info.i2c_addr,
-                tuner_info.check_addr,
-            );
-            match regval {
-                Ok(val) => {
-                    trace!(
-                        "Expecting value {:#02x}, got value {:#02x}",
-                        tuner_info.check_val,
-                        val
-                    );
-                    if val == tuner_info.check_val {
-                        return Some(tuner_info.id);
-                    }
-                }
-                Err(e) => {
-                    warn!("Reading failed with {}, continuing", e);
-                }
-            };
-        }
-        None
     }
 
     pub fn detach_kernel_driver(&mut self) {
@@ -305,54 +245,6 @@ impl RtlSdrDeviceHandle {
         self.demod_write_reg(0, 0x0d, 0x83, 1);
     }
 
-    pub fn set_if_freq(&self, freq: u32) {
-        let rtl_xtal: u32 = DEF_RTL_XTAL_FREQ; // need to apply PPM correction
-        let base = 1u32 << 22;
-        let if_freq: i32 = (freq as f64 * base as f64 / rtl_xtal as f64 * -1f64) as i32;
-
-        let tmp = ((if_freq >> 16) as u16) & 0x3f;
-        self.demod_write_reg(1, 0x19, tmp, 1);
-        let tmp = ((if_freq >> 8) as u16) & 0xff;
-        self.demod_write_reg(1, 0x1a, tmp, 1);
-        let tmp = if_freq as u16 & 0xff;
-        self.demod_write_reg(1, 0x1b, tmp, 1);
-    }
-
-    pub fn set_sample_rate(&self, samp_rate: u32) {
-        let real_rsamp_ratio: u32;
-
-        // check if the rate is supported by the resampler
-        if (samp_rate <= 225000)
-            || (samp_rate > 3200000)
-            || ((samp_rate > 300000) && (samp_rate <= 900000))
-        {
-            error!("Invalid sample rate: {} Hz", samp_rate);
-        }
-
-        let mut rsamp_ratio: u32 = (DEF_RTL_XTAL_FREQ * (2 ^ 22)) / samp_rate;
-        rsamp_ratio &= 0x0ffffffc;
-
-        real_rsamp_ratio = rsamp_ratio | ((rsamp_ratio & 0x08000000) << 1);
-        let real_rate: f64 = ((DEF_RTL_XTAL_FREQ * (2 ^ 22)) / real_rsamp_ratio).into();
-        info!("Exact sample rate is: {} Hz", real_rate);
-
-        self.set_i2c_repeater(true);
-        // self.tuner.as_ref().unwrap().set_bw(real_rate as u32, &self);
-        self.set_i2c_repeater(false);
-
-        let mut tmp: u16 = (rsamp_ratio >> 16).try_into().unwrap();
-        self.demod_write_reg(1, 0x9f, tmp, 2);
-        tmp = (rsamp_ratio & 0xffff).try_into().unwrap();
-        self.demod_write_reg(1, 0xa1, tmp, 2);
-        // self.set_sample_freq_corr();
-
-        // reset demod (bit 3, soft_rst)
-        self.demod_write_reg(1, 0x01, 0x14, 1);
-        self.demod_write_reg(1, 0x01, 0x10, 1);
-
-        // self.set_offset_tuning();
-    }
-
     pub fn reset_buffer(&self) {
         self.write_reg(BLOCK_USBB, ADDR_USB_EPA_CTL, 0x1002, 2);
         self.write_reg(BLOCK_USBB, ADDR_USB_EPA_CTL, 0x0000, 2);
@@ -364,9 +256,9 @@ impl RtlSdrDeviceHandle {
     }
 }
 
-// impl Drop for RtlSdrDeviceHandle {
-//     fn drop(self) {
-//         self.deinit_baseband();
-//         self.attach_kernel_driver();
-//     }
-// }
+impl Drop for RtlSdrDeviceHandle {
+    fn drop(&mut self) {
+        self.deinit_baseband();
+        self.attach_kernel_driver();
+    }
+}

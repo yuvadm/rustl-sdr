@@ -208,8 +208,8 @@ impl R820T {
         handle.demod_write_reg(1, 0x15, 0x01, 1);
     }
 
-    fn shadow_store(&self, reg: u8, _val: u8, len: usize) {
-        let r = reg as usize - REG_SHADOW_START;
+    fn shadow_store(&self, reg: u8, _val: u8, _len: usize) {
+        let _r = reg as usize - REG_SHADOW_START;
         // if r < 0 {
         //     len = len + r;
         // }
@@ -275,13 +275,13 @@ impl Tuner for R820T {
         handle.demod_write_reg(1, 0x15, 0x01, 1);
     }
 
-    fn exit(&self) {}
+    fn exit(&self, _handle: &RtlSdrDeviceHandle) {}
 
-    fn set_freq(&self, _freq: u32) {
+    fn set_frequency(&self, _freq: u32, _handle: &RtlSdrDeviceHandle) {
         unimplemented!()
     }
 
-    fn set_bandwidth(&mut self, mut bw: u32, rate: u32, handle: &RtlSdrDeviceHandle) {
+    fn set_bandwidth(&mut self, mut bw: u32, _handle: &RtlSdrDeviceHandle) {
         const FILT_HP_BW1: u32 = 350000;
         const FILT_HP_BW2: u32 = 380000;
 
@@ -340,15 +340,15 @@ impl Tuner for R820T {
         self.write_reg_mask(0x0b, reg_0b, 0xef);
     }
 
-    fn set_gain(&self, _gain: u32) {
+    fn set_gain(&self, _gain: u32, _handle: &RtlSdrDeviceHandle) {
         unimplemented!()
     }
 
-    fn set_if_gain(&self, _if_gain: u32) {
+    fn set_if_gain(&self, _if_gain: u32, _handle: &RtlSdrDeviceHandle) {
         unimplemented!()
     }
 
-    fn set_gain_mode(&self, _mode: bool) {
+    fn set_gain_mode(&self, _mode: bool, _handle: &RtlSdrDeviceHandle) {
         unimplemented!()
     }
 
